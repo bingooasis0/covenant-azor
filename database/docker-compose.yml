@@ -1,0 +1,17 @@
+
+version: '3.9'
+services:
+  db:
+    image: postgres:16
+    container_name: covenant_azor_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: azor
+      POSTGRES_PASSWORD: azorpass
+      POSTGRES_DB: azor
+    ports:
+      - "5434:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:

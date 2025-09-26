@@ -1,0 +1,11 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+sqlalchemy==2.0.30
+psycopg[binary]==3.2.1
+alembic==1.13.2
+python-jose==3.3.0
+passlib[argon2]==1.7.4
+pydantic[email]==2.8.2
+pydantic-settings==2.4.0
+msal==1.28.0
+requests==2.32.3

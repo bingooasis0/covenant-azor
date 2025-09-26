@@ -1,0 +1,40 @@
+
+@tailwind base; @tailwind components; @tailwind utilities;
+
+/* THEME TOKENS */
+:root{
+  --color-primary:#ff0b02;
+  --color-secondary:#9333ea;
+  --color-accent:#f59e0b;
+  --color-header:#264b3a;
+  --color-page:#ffffff;
+  --color-text:#111827;
+  --color-muted:#6b7280;
+  --color-card:#ffffff;
+  --color-border:#e5e7eb;
+}
+
+/* Global */
+html,body{height:100%}
+body{background:var(--color-page);color:var(--color-text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+
+/* Utilities bound to tokens */
+.wrapper{width:100%;padding-left:24px;padding-right:24px}
+.header-bar{background:var(--color-header);color:#fff;height:56px;display:flex;align-items:center}
+.card{background:var(--color-card);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.06);padding:16px}
+.text-muted{color:var(--color-muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;padding:8px 12px;font-weight:600}
+.btn-primary{background:var(--color-primary);color:#fff}
+.btn-secondary{background:var(--color-secondary);color:#fff}
+.btn-accent{background:var(--color-accent);color:#fff}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+
+/* Toast */
+.toast-wrap{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{background:#111827;color:#fff;padding:10px 12px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast.success{background:#065f46}
+.toast.error{background:#991b1b}
+
+/* Dialog */
+.dialog-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50}
+.dialog{background:#fff;border-radius:12px;padding:20px;max-width:480px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
