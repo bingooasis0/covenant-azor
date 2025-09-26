@@ -1,0 +1,38 @@
+/* frontend/src/styles/admin.css
+   Scoped styles for Admin and forms. No global resets.
+*/
+/* Containers */
+.panel { background: #fff; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.panel-2 { background: #fff; border-radius: 10px; }
+
+/* Tables */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 10px 12px; font-size: 0.9rem; }
+.table thead th { text-align: left; background: #f3f4f6; }
+.table tbody tr { border-top: 1px solid #ececec; }
+.table tbody tr:hover { background: #fafafa; }
+
+/* Buttons */
+.btn { @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-transparent cursor-pointer; }
+.btn.primary { @apply bg-sky-500 text-white hover:bg-sky-600; }
+.btn.ghost { @apply bg-white text-gray-800 border-gray-200 hover:bg-gray-50; }
+.btn.danger { @apply bg-red-500 text-white hover:bg-red-600; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Badges */
+.badge { @apply inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full; }
+.badge.new { @apply bg-sky-100 text-sky-800; }
+.badge.contacted { @apply bg-amber-100 text-amber-800; }
+.badge.won { @apply bg-emerald-100 text-emerald-800; }
+.badge.lost { @apply bg-rose-100 text-rose-800; }
+.badge.commission { @apply bg-indigo-100 text-indigo-800; }
+
+/* Icons */
+.icon { width: 16px; height: 16px; display: inline-block; vertical-align: -2px; }
+
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal { background: #fff; border-radius: 16px; width: min(720px, 92vw); max-height: 88vh; overflow: auto; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.modal header { padding: 12px 16px; border-bottom: 1px solid #eee; font-weight: 600; }
+.modal section { padding: 16px; }
+.modal footer { padding: 12px 16px; border-top: 1px solid #eee; display: flex; gap: 8px; justify-content: flex-end; }
