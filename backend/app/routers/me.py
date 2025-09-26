@@ -1,8 +1,7 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
-from fastapi import Header
 from app.database import SessionLocal
 from app.config import settings
 from app import models, schemas
@@ -11,30 +10,22 @@ router = APIRouter()
 
 def get_db():
     db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    try: yield db
+    finally: db.close()
 
-def _get_token(auth_header: str | None) -> str:
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Missing Authorization")
-    parts = auth_header.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Invalid Authorization")
-    return parts[1]
+def _token(h: str | None):
+    if not h: raise HTTPException(status_code=401, detail="Missing Authorization")
+    p = h.split()
+    if len(p)!=2 or p[0].lower()!="bearer": raise HTTPException(status_code=401, detail="Invalid Authorization")
+    return p[1]
 
 @router.get("/me", response_model=schemas.UserOut)
 def me(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    token = _get_token(authorization)
+    t = _token(authorization)
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        sub = payload.get("sub")
-        if not sub:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        sub = jwt.decode(t, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]).get("sub")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    user = db.query(models.User).filter(models.User.id == sub).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+    u = db.query(models.User).filter(models.User.id==sub).first()
+    if not u: raise HTTPException(status_code=404, detail="Not found")
+    return u

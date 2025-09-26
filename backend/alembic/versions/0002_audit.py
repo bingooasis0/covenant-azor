@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as psql
 
 revision = '0002_audit'
-down_revision = None
+down_revision = '0001_init'
 branch_labels = None
 depends_on = None
 
@@ -17,7 +17,7 @@ def upgrade():
         sa.Column('action', sa.String(), nullable=False),
         sa.Column('entity_type', sa.String(), nullable=False),
         sa.Column('entity_id', sa.String(), nullable=True),
-        sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text('now()'))
+        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False)
     )
 
 def downgrade():

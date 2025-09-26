@@ -18,8 +18,5 @@ def contact(payload: dict, authorization: str | None = Header(default=None), db:
     if not sub: raise HTTPException(status_code=401, detail="Unauthorized")
     msg = payload.get("message") or ""
     if not msg.strip(): raise HTTPException(status_code=400, detail="Empty message")
-    try:
-        send_mail(["A-ZReferrals@covenanttechnology.net"], "Agent message", msg)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"send failed: {e}")
+    send_mail(["A-ZReferrals@covenanttechnology.net"], "Agent message", msg)
     return {"ok": True}

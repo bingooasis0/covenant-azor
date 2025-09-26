@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel, EmailStr, UUID4, ConfigDict
-from typing import Optional, Literal
+from typing import Optional, Literal, List, Dict, Any
 
 Role = Literal["AZOR", "COVENANT"]
 
@@ -29,6 +29,13 @@ class ReferralCreate(BaseModel):
     contact_name: str
     contact_email: EmailStr
     contact_phone: str
+    # extended fields (optional in payloads)
+    opportunity_types: List[str] = []
+    opportunity_other: Optional[str] = None
+    environment: Dict[str, Any] = {}
+    locations: List[str] = []
+    reason: Optional[str] = None
+    scope: Dict[str, Any] = {}
     notes: Optional[str] = None
 
 class ReferralOut(BaseModel):
@@ -36,4 +43,5 @@ class ReferralOut(BaseModel):
     ref_no: str
     company: str
     status: str
+    notes: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,6 @@
 
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum, Text
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -14,7 +14,7 @@ class User(Base):
     last_name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
-    role = Column(String, default="AGENT")
+    role = Column(String, default="AZOR")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Referral(Base):
@@ -30,4 +30,6 @@ class Referral(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     agent_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    estimated_commission = Column(Numeric(12,2), default=0)
+    commission_paid      = Column(Numeric(12,2), default=0)
     agent = relationship("User")
