@@ -24,6 +24,8 @@ def require_admin(authorization: str | None):
         raise HTTPException(status_code=403, detail="Admin only")
     return sub
 
+# ---------- USERS ----------
+
 @router.get("/users", response_model=List[schemas.UserOut])
 def list_users(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     admin = require_admin(authorization)
@@ -89,6 +91,8 @@ def admin_reset_mfa(user_id: str, authorization: str | None = Header(default=Non
     write_audit(db, admin, "admin_reset_mfa", "user", user_id)
     return {"ok": True}
 
+# ---------- REFERRALS ----------
+
 @router.get("/referrals", response_model=List[schemas.ReferralOut])
 def list_referrals(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     admin = require_admin(authorization)
@@ -96,7 +100,7 @@ def list_referrals(authorization: str | None = Header(default=None), db: Session
     write_audit(db, admin, "admin_list_referrals", "referral", None)
     return rows
 
-@router.patch("/referrals/{ref_id}")
+@router.patch("/referrals/{ref_id}", response_model=schemas.ReferralOut)
 def update_referral(ref_id: str, payload: dict, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
     admin = require_admin(authorization)
     r = db.query(models.Referral).filter(models.Referral.id == ref_id).first()
