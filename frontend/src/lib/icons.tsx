@@ -13,3 +13,27 @@ export const IconEye = make(<><circle cx="12" cy="12" r="2"/><path d="M22 12s-4-
 export const IconKey = make(<><path d="M21 2l-2 2" /><path d="M7.5 7.5l9 9" /><circle cx="5" cy="19" r="3" /></>);
 export const IconShield = make(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>);
 export const IconRefresh = make(<><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15" /></>);
+
+
+export function IconDownload(props: React.SVGProps<SVGSVGElement>){
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" {...props}>
+      <g>
+        <path d="M12 3v10m0 0l4-4m-4 4l-4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M4 17h16v4H4z" fill="currentColor" opacity="0.08"/>
+        <path d="M4 17h16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      </g>
+    </svg>
+  );
+}
+
+
+
+export const IconHome = make(<><path d="M3 11l9-8 9 8"/><path d="M9 22V12h6v10"/></>);
+export const IconClipboardList = make(<><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M9 10h6M9 14h6"/></>);
+export const IconFolder = make(<><path d="M4 4h5l3 3h8v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></>);
+export const IconUser = make(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="3"/></>);
+export const IconShieldCheck = make(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></>);
+
+
+export const IconLogout = make(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></>);

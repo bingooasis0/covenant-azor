@@ -9,7 +9,10 @@ export function Modal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <header>{title}</header>
+        <header>
+          <span>{title}</span>
+          <button aria-label="Close" className="btn ghost" onClick={onClose}>×</button>
+        </header>
         <section>{children}</section>
         {footer ? <footer>{footer}</footer> : null}
       </div>

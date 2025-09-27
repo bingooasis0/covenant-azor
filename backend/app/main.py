@@ -5,6 +5,7 @@ from app.routers import auth, me, users, referrals, admin, audit, metrics, suppo
 
 app = FastAPI(title="Covenant Azor Backend")
 app.include_router(mfa.router, prefix="/users/mfa", tags=["mfa"])
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 app.add_middleware(
     CORSMiddleware,
