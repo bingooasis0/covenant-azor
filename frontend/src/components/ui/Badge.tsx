@@ -1,15 +1,5 @@
-/* frontend/src/components/ui/Badge.tsx */
 import React from "react";
-
-const map: Record<string,string> = {
-  "New": "badge new",
-  "Contacted": "badge contacted",
-  "Won": "badge won",
-  "Lost": "badge lost",
-  "Commission Paid": "badge commission",
-};
-
-export default function Badge({ status }: { status: string }) {
-  const cls = map[status] ?? "badge";
-  return <span className={cls}>{status}</span>;
-}
+type Status = "New"|"Contacted"|"Qualified"|"Proposal Sent"|"Won"|"Lost"|"On Hold"|"Commission Paid";
+const FALLBACK: Record<Status, string> = { New:"bg-blue-100 text-blue-800 border-blue-200", Contacted:"bg-amber-100 text-amber-800 border-amber-200", Qualified:"bg-yellow-100 text-yellow-800 border-yellow-200", "Proposal Sent":"bg-indigo-100 text-indigo-800 border-indigo-200", Won:"bg-green-100 text-green-800 border-green-200", Lost:"bg-red-100 text-red-800 border-red-200", "On Hold":"bg-zinc-100 text-zinc-800 border-zinc-200", "Commission Paid":"bg-emerald-100 text-emerald-900 border-emerald-200" };
+const slug=(s:string)=>s.toLowerCase().replace(/\s+/g,"-");
+export default function Badge({status}:{status:Status|string}){ const s=(status as Status)||"New"; const tw=FALLBACK[s]||"bg-zinc-100 text-zinc-800 border-zinc-200"; const css=`badge ${slug(s)}`; return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${css} ${tw}`}>{status}</span>; }

@@ -1,9 +1,8 @@
 {
   "/page": "app/page.js",
   "/referral/page": "app/referral/page.js",
-  "/account/page": "app/account/page.js",
-  "/resources/page": "app/resources/page.js",
-  "/not-found": "app/not-found.js",
   "/admin/page": "app/admin/page.js",
-  "/create-referral/page": "app/create-referral/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/account/page": "app/account/page.js",
+  "/resources/page": "app/resources/page.js"
 }
