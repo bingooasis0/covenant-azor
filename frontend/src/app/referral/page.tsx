@@ -3,20 +3,27 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/ui/Badge";
-import { fetchMyReferrals, patchReferralAgent, type Referral } from "@/lib/api";
+import {
+  fetchMyReferrals,
+  patchReferralAgent,
+  adminUpdateReferral,
+  getReferralFiles,
+  uploadReferralFiles,
+  deleteReferralFile,
+  type Referral
+} from "@/lib/api";
 
 export default function ReferralPage() {
   const [rows, setRows] = useState<Referral[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sel, setSel] = useState<string>("");
 
-  // edit fields
-  const [company, setCompany] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [notes, setNotes] = useState("");
-  const [edit, setEdit] = useState(false);
+  // deep edit modal parity with Admin
+  const [editOpen, setEditOpen] = useState(false);
+  const [ef, setEf] = useState<any>({});
+  const [files, setFiles] = useState<any[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const role = typeof window !== "undefined" ? (localStorage.getItem("role") || "AZOR") : "AZOR";
 
   const selRef = useMemo(() => rows.find((r) => r.id === sel), [sel, rows]);
 
@@ -32,37 +39,72 @@ export default function ReferralPage() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (selRef) {
-      setCompany(selRef.company || "");
-      setName(selRef.contact_name || "");
-      setEmail(selRef.contact_email || "");
-      setPhone(selRef.contact_phone || "");
-      setNotes(selRef.notes || "");
-    }
-  }, [selRef]);
+  function openEdit(r: Referral) {
+    setSel(r.id);
+    setEf({
+      company: r.company || "",
+      status: r.status || "New",
+      contact_name: r.contact_name || "",
+      contact_email: r.contact_email || "",
+      contact_phone: r.contact_phone || "",
+      notes: r.notes || "",
+      locationsCsv: "",
+      env_users: "", env_phone_provider: "", env_isp: "", env_bandwidth: "", env_it_model: "",
+    });
+    (async () => {
+      try { setFiles(await getReferralFiles(r.id) as any); } catch { setFiles([]); }
+    })();
+    setEditOpen(true);
+  }
 
   async function save() {
     if (!selRef) return;
+    setError(null);
     try {
-      await patchReferralAgent(selRef.id, {
-        company,
-        contact_name: name,
-        contact_email: email,
-        contact_phone: phone,
-        notes,
-      });
-      setRows((prev) =>
-        prev.map((r) =>
-          r.id === selRef.id
-            ? { ...r, company, contact_name: name, contact_email: email, contact_phone: phone, notes }
-            : r
-        )
-      );
-      setEdit(false);
-    } catch (e: any) {
+      if (role === "COVENANT") {
+        const body:any = {
+          company: ef.company, status: ef.status,
+          contact_name: ef.contact_name, contact_email: ef.contact_email, contact_phone: ef.contact_phone,
+          notes: ef.notes || null,
+        };
+        if (ef.locationsCsv?.trim()) body.locations = ef.locationsCsv.split(",").map((s:string)=>s.trim()).filter(Boolean);
+        body.environment = {
+          users: ef.env_users ? Number(ef.env_users) : undefined,
+          phone_provider: ef.env_phone_provider || undefined,
+          internet_provider: ef.env_isp || undefined,
+          internet_bandwidth_mbps: ef.env_bandwidth ? Number(ef.env_bandwidth) : undefined,
+          it_model: ef.env_it_model || undefined,
+        };
+        const updated = await adminUpdateReferral(selRef.id, body);
+        setRows((prev) => prev.map((r) => r.id === selRef.id ? { ...r, ...updated } : r));
+      } else {
+        await patchReferralAgent(selRef.id, {
+          company: ef.company,
+          contact_name: ef.contact_name,
+          contact_email: ef.contact_email,
+          contact_phone: ef.contact_phone,
+          notes: ef.notes,
+        });
+        setRows((prev) => prev.map((r) => r.id === selRef.id ? { ...r, ...ef } : r));
+      }
+
+      if (role === "COVENANT" && newFiles.length > 0) {
+        await uploadReferralFiles(selRef.id, newFiles);
+        setFiles(await getReferralFiles(selRef.id) as any);
+        setNewFiles([]);
+      }
+      setEditOpen(false);
+    } catch (e:any) {
       setError(e?.message || "Save failed");
     }
+  }
+
+  async function removeFile(fid: string) {
+    if (!selRef) return;
+    try {
+      await deleteReferralFile(selRef.id, fid);
+      setFiles(prev => prev.filter((f:any) => f.file_id !== fid));
+    } catch (e:any) { setError(e?.message || "Remove failed"); }
   }
 
   return (
@@ -79,17 +121,17 @@ export default function ReferralPage() {
       )}
 
       <div className="overflow-x-auto border border-gray-200 rounded-md">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-sm table">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Ref #</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Company</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Status</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Contact</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Email</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Phone</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Created</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Actions</th>
+              <th className="px-3 py-2 text-left border-b">Ref #</th>
+              <th className="px-3 py-2 text-left border-b">Company</th>
+              <th className="px-3 py-2 text-left border-b">Status</th>
+              <th className="px-3 py-2 text-left border-b">Contact</th>
+              <th className="px-3 py-2 text-left border-b">Email</th>
+              <th className="px-3 py-2 text-left border-b">Phone</th>
+              <th className="px-3 py-2 text-left border-b">Created</th>
+              <th className="px-3 py-2 text-right border-b w-0">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -104,7 +146,7 @@ export default function ReferralPage() {
                 <td className="px-3 py-2">{r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
                 <td className="px-3 py-2 text-right">
                   <div className="flex gap-2 justify-end">
-                    <button className="btn ghost" onClick={() => { setSel(r.id); setEdit(true); }}>Edit</button>
+                    <button className="btn ghost" onClick={()=>openEdit(r)}>Edit</button>
                     <a className="btn ghost" href={`/referral`}>View</a>
                   </div>
                 </td>
@@ -121,25 +163,58 @@ export default function ReferralPage() {
         </table>
       </div>
 
-      {edit && selRef && (
-        <div className="modal-backdrop" onClick={() => setEdit(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <header>
-              <div>Edit {selRef.ref_no}</div>
-              <button className="btn ghost" onClick={()=>setEdit(false)}>Close</button>
-            </header>
+      {/* Deep edit modal, role-aware */}
+      {editOpen && selRef && (
+        <div className="modal-backdrop" onClick={()=>setEditOpen(false)}>
+          <div className="modal" onClick={(e)=>e.stopPropagation()}>
+            <header><div>Edit {selRef.ref_no}</div><button className="btn ghost" onClick={()=>setEditOpen(false)}>Close</button></header>
             <section className="space-y-3">
+              {error && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{error}</div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input className="input" placeholder="Company" value={company} onChange={(e) => setCompany(e.target.value)} />
-                <input className="input" placeholder="Contact Name" value={name} onChange={(e) => setName(e.target.value)} />
-                <input className="input" type="email" placeholder="Contact Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <input className="input" placeholder="Contact Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <div><label className="block text-sm font-medium mb-1">Company</label><input className="input w-full" value={ef.company} onChange={e=>setEf((p:any)=>({...p,company:e.target.value}))} /></div>
+                <div><label className="block text-sm font-medium mb-1">Status</label>
+                  <select className="input w-full" value={ef.status} onChange={e=>setEf((p:any)=>({...p,status:e.target.value}))} disabled={role!=="COVENANT"}>
+                    {["New","Contacted","Qualified","Proposal Sent","Won","Lost","On Hold","Commission Paid"].map(s=><option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div><label className="block text-sm font-medium mb-1">Contact Name</label><input className="input w-full" value={ef.contact_name} onChange={e=>setEf((p:any)=>({...p,contact_name:e.target.value}))} /></div>
+                <div><label className="block text-sm font-medium mb-1">Contact Email</label><input type="email" className="input w-full" value={ef.contact_email} onChange={e=>setEf((p:any)=>({...p,contact_email:e.target.value}))} /></div>
+                <div><label className="block text sm font-medium mb-1">Contact Phone</label><input className="input w-full" value={ef.contact_phone} onChange={e=>setEf((p:any)=>({...p,contact_phone:e.target.value}))} /></div>
+                <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Locations (CSV)</label><input className="input w-full" value={ef.locationsCsv} onChange={e=>setEf((p:any)=>({...p,locationsCsv:e.target.value}))} placeholder="NYC, Boston, ..." disabled={role!=="COVENANT"} /></div>
+                <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Notes</label><textarea className="input w-full min-h-[120px]" value={ef.notes} onChange={e=>setEf((p:any)=>({...p,notes:e.target.value}))} /></div>
               </div>
-              <textarea className="input w-full min-h-[120px]" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+              {role==="COVENANT" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div><label className="block text-sm font-medium mb-1">Users</label><input className="input w-full" type="number" inputMode="numeric" value={ef.env_users} onChange={e=>setEf((p:any)=>({...p,env_users:e.target.value}))} /></div>
+                    <div><label className="block text-sm font-medium mb-1">Phone provider</label><input className="input w-full" value={ef.env_phone_provider} onChange={e=>setEf((p:any)=>({...p,env_phone_provider:e.target.value}))} /></div>
+                    <div><label className="block text-sm font-medium mb-1">Internet provider</label><input className="input w-full" value={ef.env_isp} onChange={e=>setEf((p:any)=>({...p,env_isp:e.target.value}))} /></div>
+                    <div><label className="block text-sm font-medium mb-1">Bandwidth (Mbps)</label><input className="input w-full" type="number" inputMode="decimal" value={ef.env_bandwidth} onChange={e=>setEf((p:any)=>({...p,env_bandwidth:e.target.value}))} /></div>
+                    <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">IT support model</label><input className="input w-full" value={ef.env_it_model} onChange={e=>setEf((p:any)=>({...p,env_it_model:e.target.value}))} /></div>
+                  </div>
+
+                  <div className="font-semibold">Files</div>
+                  {files.length===0 ? <div className="text-sm text-[var(--muted)]">No files</div> :
+                    <ul className="text-sm list-disc ml-5">
+                      {files.map((f:any) => (
+                        <li key={f.file_id} className="flex items-center justify-between gap-3">
+                          <span>{f.name} ({f.size} bytes)</span>
+                          <button className="btn ghost" onClick={()=>removeFile(f.file_id)}>Remove</button>
+                        </li>
+                      ))}
+                    </ul>
+                  }
+                  <div>
+                    <input className="block w-full text-sm" type="file" multiple accept="*/*" onChange={(e)=>setNewFiles(e.target.files?Array.from(e.target.files):[])} />
+                    <div className="text-xs text-gray-600 mt-1">Add files. Any type.</div>
+                  </div>
+                </>
+              )}
             </section>
             <footer>
-              <button className="btn ghost" onClick={()=>setEdit(false)}>Cancel</button>
-              <button className="btn" onClick={save}>Save changes</button>
+              <button className="btn ghost" onClick={()=>setEditOpen(false)}>Cancel</button>
+              <button className="btn" onClick={save}>{role==="COVENANT" ? "Save changes" : "Save allowed fields"}</button>
             </footer>
           </div>
         </div>

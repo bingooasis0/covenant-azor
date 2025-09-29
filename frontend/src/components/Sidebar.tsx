@@ -32,6 +32,10 @@ export default function Sidebar(){
         <Item href="/account"   label="Account"   active={p.startsWith("/account")} Icon={IconUser} />
         {role==="COVENANT" && <Item href="/admin" label="Admin" active={p.startsWith("/admin")} Icon={IconShield} />}
       </nav>
+    <div className="mt-4 border-t pt-3 text-xs text-[var(--muted)] flex items-center justify-between">
+      <span>version {process.env.NEXT_PUBLIC_APP_VERSION || "dev"}</span>
+      <a href="/feedback" className="btn ghost" style={{padding:'4px 8px', fontSize:12}}>Feedback</a>
+    </div>
       <button className="btn secondary mt-2 w-full justify-center" onClick={logout}><IconLogout className="icon" /> Logout</button>
     </aside>
   );
