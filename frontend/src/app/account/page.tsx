@@ -1,73 +1,153 @@
-// frontend/src/app/account/page.tsx
+/* frontend/src/app/account/page.tsx */
 "use client";
+
 import React, { useEffect, useState } from "react";
-import { fetchMe, changePassword, mfaReset } from "@/lib/api/index";
-import { IconKey, IconShield, IconUser } from "@/lib/icons";
+import { fetchMe, changePassword, mfaReset, type User } from "@/lib/api";
 
-export default function AccountPage(){
-  const [me, setMe] = useState<any>(null);
-  const [oldp, setOld] = useState("");
-  const [newp, setNew] = useState("");
-  const [msg, setMsg] = useState("");
+export default function Account() {
+  const [me, setMe] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
 
-  useEffect(()=>{ (async()=>{ try{ setMe(await fetchMe()); }catch{} })(); },[]);
+  const [oldPwd, setOldPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setAuthError(false);
+      setPageError(null);
+      try {
+        const u = await fetchMe();
+        if (!cancelled) setMe(u);
+      } catch (e: any) {
+        if (!cancelled) {
+          if (e?.status === 401) setAuthError(true);
+          else setPageError(e?.message || "Failed to load profile.");
+          setMe(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function onChangePassword() {
+    if (!oldPwd || !newPwd) {
+      setToast("Enter both old and new password.");
+      return;
+    }
+    setBusy(true);
+    setToast(null);
+    try {
+      await changePassword(oldPwd, newPwd);
+      setToast("Password changed.");
+      setOldPwd("");
+      setNewPwd("");
+    } catch (e: any) {
+      setToast(e?.message || "Change password failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onResetMfa() {
+    setBusy(true);
+    setToast(null);
+    try {
+      await mfaReset();
+      setToast("MFA reset requested.");
+    } catch (e: any) {
+      setToast(e?.message || "MFA reset failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-    <div className="wrap">
-      <h1 style={{fontSize:"20px", fontWeight:600}}>Account</h1>
+    <div className="p-6 space-y-6">
+      <h1 className="text-xl font-semibold text-gray-900">Account</h1>
 
-      <div className="grid" style={{display:"grid", gridTemplateColumns:"1fr", gap:12, alignItems:"start", marginTop:12}}>
-        {/* Profile */}
-        <div className="card" style={{padding:16}}>
-          <div className="flex items-center gap-2 mb-2">
-            <IconUser className="icon" />
-            <h2 style={{fontSize:"16px", fontWeight:600}}>Profile</h2>
-          </div>
-          <div className="grid" style={{display:"grid", gridTemplateColumns:"1fr", gap:12}}>
-            <div>
-              <div className="label">User ID</div>
-              <div style={{fontWeight:600}}>{me?.id ?? "-"}</div>
-            </div>
-            <div>
-              <div className="label">Role</div>
-              <div style={{fontWeight:600}}>{me?.role ?? "-"}</div>
-            </div>
-            <div>
-              <div className="label">Email</div>
-              <div style={{fontWeight:600}}>{me?.email ?? "-"}</div>
-            </div>
-            <div>
-              <div className="label">Name</div>
-              <div style={{fontWeight:600}}>{me?.first_name ?? "-"} {me?.last_name ?? ""}</div>
-            </div>
-          </div>
+      {authError && (
+        <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2">
+          Session expired or unauthorized. Please{" "}
+          <a className="link" href="/" aria-label="Sign in">
+            sign in again
+          </a>
+          .
         </div>
+      )}
+      {pageError && !authError && (
+        <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{pageError}</div>
+      )}
+      {toast && (
+        <div className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-md p-2">{toast}</div>
+      )}
 
-        {/* Security */}
-        <div className="card" style={{padding:16}}>
-          <div className="flex items-center gap-2 mb-2">
-            <IconShield className="icon" />
-            <h2 style={{fontSize:"16px", fontWeight:600}}>Security</h2>
-          </div>
-          <div className="grid" style={{gridTemplateColumns:"1fr", gap:12}}>
+      <div className="card">
+        <div className="font-semibold mb-2">Profile</div>
+        {loading ? (
+          <div className="text-sm text-gray-500">Loading…</div>
+        ) : (
+          <div
+            className="grid"
+            style={{ display: "grid", gridTemplateColumns: "220px 1fr", rowGap: 10 }}
+          >
+            <div className="label">User ID</div>
+            <div>{me?.id || "-"}</div>
+
+            <div className="label">Role</div>
+            <div>{me?.role || "-"}</div>
+
+            <div className="label">Email</div>
+            <div>{me?.email || "-"}</div>
+
+            <div className="label">Name</div>
             <div>
-              <label className="label">Old password</label>
-              <input className="input w-full" type="password" autoComplete="current-password" value={oldp} onChange={e=>setOld(e.target.value)} />
-            </div>
-            <div>
-              <label className="label">New password</label>
-              <input className="input w-full" type="password" autoComplete="new-password" value={newp} onChange={e=>setNew(e.target.value)} />
+              {me ? `${me.first_name || ""} ${me.last_name || ""}`.trim() || "-" : "-"}
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-3">
-            <button className="btn" onClick={async()=>{ try{ await changePassword({ old_password: oldp, new_password: newp }); setMsg("Password changed"); }catch{ setMsg("Error"); } }}>
-              <IconKey className="icon" /> Change password
+        )}
+      </div>
+
+      <div className="card">
+        <div className="font-semibold mb-2">Security</div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Old password</label>
+            <input
+              className="input w-full"
+              type="password"
+              autoComplete="current-password"
+              value={oldPwd}
+              onChange={(e) => setOldPwd(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">New password</label>
+            <input
+              className="input w-full"
+              type="password"
+              autoComplete="new-password"
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button className="btn" disabled={busy} onClick={onChangePassword}>
+              {busy ? "Working…" : "Change password"}
             </button>
-            <button className="btn ghost" onClick={async()=>{ try{ await mfaReset(); setMsg("MFA reset requested"); }catch{ setMsg("Error"); } }}>
-              <IconShield className="icon" /> Reset Multi‑Factor
+            <button className="btn ghost" disabled={busy} onClick={onResetMfa}>
+              Reset Multi-Factor
             </button>
           </div>
-          {msg && <div className="label" style={{marginTop:8}}>{msg}</div>}
         </div>
       </div>
     </div>

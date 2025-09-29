@@ -1,12 +1,24 @@
-// frontend/src/lib/api/index.ts
+// frontend/src/lib/api/index.ts (diagnostic-instrumented)
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
-/** Core fetch: attaches Authorization; never clears token or redirects on 401 */
+let __api_base_logged = false;
+function logOnceBase() {
+  if (!__api_base_logged && typeof window !== "undefined") {
+    __api_base_logged = true;
+    // eslint-disable-next-line no-console
+    console.debug("[API] API_BASE =", API_BASE);
+  }
+}
+
+/** Core fetch: attaches Authorization; never clears token or redirects on 401.
+ * Adds detailed diagnostics on non-OK responses and sets err.status.
+ */
 export async function apiFetch(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
+  logOnceBase();
   const headers = new Headers(init.headers || {});
   try {
     const tok =
@@ -15,7 +27,23 @@ export async function apiFetch(
       headers.set("Authorization", `Bearer ${tok}`);
     }
   } catch {}
-  return fetch(`${API_BASE}${path}`, { credentials: "include", ...init, headers });
+  const url = `${API_BASE}${path}`;
+  const resp = await fetch(url, { credentials: "include", ...init, headers });
+  if (!resp.ok) {
+    let bodyText = "";
+    try { bodyText = await resp.text(); } catch {}
+    const err: any = new Error(
+      `[apiFetch] ${resp.status} ${resp.statusText} for ${path} :: ${bodyText.slice(0, 500)}`
+    );
+    err.status = resp.status;
+    err.url = url;
+    err.method = init?.method || "GET";
+    err.body = init?.body;
+    // eslint-disable-next-line no-console
+    console.warn(err.message);
+    throw err;
+  }
+  return resp;
 }
 
 /* ---------- Types ---------- */
@@ -50,7 +78,6 @@ export async function login(email: string, password: string, mfa_code?: string) 
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
   try {
     if (typeof window !== "undefined") {
@@ -64,8 +91,6 @@ export async function login(email: string, password: string, mfa_code?: string) 
 /* ---------- Account ---------- */
 export async function fetchMe(): Promise<User> {
   const r = await apiFetch("/users/me");
-  if (r.status === 401) throw new Error("Unauthorized");
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function changePassword(old_password: string, new_password: string) {
@@ -74,22 +99,23 @@ export async function changePassword(old_password: string, new_password: string)
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ old_password, new_password }),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function mfaReset() {
   const r = await apiFetch("/users/mfa/reset", { method: "POST" });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
 /* ---------- Agent ---------- */
 export async function fetchMyReferrals(): Promise<Referral[]> {
-  const r = await apiFetch("/referrals/my");
-  if (r.status === 401 || r.status === 404) return [];
-  if (!r.ok) throw new Error(await r.text());
-  const d = await r.json();
-  return Array.isArray(d) ? d : [];
+  try {
+    const r = await apiFetch("/referrals/my");
+    const d = await r.json();
+    return Array.isArray(d) ? d : [];
+  } catch (err: any) {
+    if (err?.status === 401 || err?.status === 404) return [];
+    throw err;
+  }
 }
 export async function patchReferralAgent(
   id: string,
@@ -105,7 +131,6 @@ export async function patchReferralAgent(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
@@ -136,14 +161,12 @@ export async function createReferral(payload: CreateReferralPayload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
 /* ---------- Admin: users ---------- */
 export async function adminListUsers(): Promise<User[]> {
   const r = await apiFetch("/admin/users");
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function adminCreateUser(body: {
@@ -158,12 +181,10 @@ export async function adminCreateUser(body: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function adminDeleteUser(id: string) {
-  const r = await apiFetch(`/admin/users/${id}`, { method: "DELETE" });
-  if (!r.ok) throw new Error(await r.text());
+  await apiFetch(`/admin/users/${id}`, { method: "DELETE" });
   return true;
 }
 export async function adminResetUserPassword(id: string, new_password: string) {
@@ -172,12 +193,10 @@ export async function adminResetUserPassword(id: string, new_password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ new_password }),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function adminResetUserMfa(id: string) {
   const r = await apiFetch(`/admin/users/${id}/mfa/reset`, { method: "POST" });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function adminUpdateUser(
@@ -189,17 +208,19 @@ export async function adminUpdateUser(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
 /* ---------- Admin: referrals ---------- */
 export async function adminListReferrals(): Promise<Referral[]> {
-  const r = await apiFetch("/admin/referrals");
-  if (r.status === 401 || r.status === 404) return [];
-  if (!r.ok) throw new Error(await r.text());
-  const d = await r.json();
-  return Array.isArray(d) ? d : [];
+  try {
+    const r = await apiFetch("/admin/referrals");
+    const d = await r.json();
+    return Array.isArray(d) ? d : [];
+  } catch (err: any) {
+    if (err?.status === 401 || err?.status === 404) return [];
+    throw err;
+  }
 }
 export async function adminUpdateReferral(
   id: string,
@@ -210,12 +231,10 @@ export async function adminUpdateReferral(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function adminDeleteReferral(id: string) {
-  const r = await apiFetch(`/admin/referrals/${id}`, { method: "DELETE" });
-  if (!r.ok) throw new Error(await r.text());
+  await apiFetch(`/admin/referrals/${id}`, { method: "DELETE" });
   return true;
 }
 
@@ -230,8 +249,6 @@ export type ReferralFile = {
 };
 export async function getReferralFiles(id: string): Promise<ReferralFile[]> {
   const r = await apiFetch(`/referrals/${id}/files`);
-  if (r.status === 404) return [];
-  if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
   return Array.isArray(data?.files) ? data.files : Array.isArray(data) ? data : [];
 }
@@ -239,37 +256,38 @@ export async function uploadReferralFiles(id: string, files: File[]) {
   const fd = new FormData();
   for (const f of files) fd.append("files", f, f.name);
   const r = await apiFetch(`/referrals/${id}/files`, { method: "POST", body: fd });
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function deleteReferralFile(id: string, file_id: string) {
-  const r = await apiFetch(`/referrals/${id}/files/${file_id}`, { method: "DELETE" });
-  if (r.status === 404) return false;
-  if (!r.ok) throw new Error(await r.text());
+  await apiFetch(`/referrals/${id}/files/${file_id}`, { method: "DELETE" });
   return true;
 }
 
 /* ---------- Announcements ---------- */
 export async function getAnnouncements(): Promise<{ items: string[] }> {
-  const r = await apiFetch("/admin/announcements");
-  if (r.status === 404) return { items: [] };
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  try {
+    const r = await apiFetch("/admin/announcements");
+    return r.json();
+  } catch (err: any) {
+    if (err?.status === 404) return { items: [] };
+    throw err;
+  }
 }
 export async function updateAnnouncements(doc: { items: string[] }) {
-  const r = await apiFetch("/admin/announcements", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(doc),
-  });
-  if (r.status === 404) {
-    try {
-      localStorage.setItem("announcements", JSON.stringify(doc.items || []));
-    } catch {}
-    return { saved: "local" };
+  try {
+    const r = await apiFetch("/admin/announcements", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(doc),
+    });
+    return r.json();
+  } catch (err: any) {
+    if (err?.status === 404) {
+      try { localStorage.setItem("announcements", JSON.stringify(doc.items || [])); } catch {}
+      return { saved: "local" };
+    }
+    throw err;
   }
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
 }
 
 /* ---------- Audit ---------- */
@@ -279,7 +297,6 @@ export async function fetchActivity(limit = 10, offset = 0) {
       offset
     )}`
   );
-  if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 export async function fetchAuditPage(limit = 50, offset = 0) {

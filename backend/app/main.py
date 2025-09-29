@@ -2,7 +2,6 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import admin_referrals
 
 # Routers
 from app.routers import (
@@ -15,25 +14,25 @@ from app.routers import (
     metrics,
     support,
     mfa,
-    admin_extra,    # NEW: PATCH /admin/users/{id}, POST /admin/users/{id}/reset-password
-    referral_files, # NEW: GET/POST/DELETE /referrals/{id}/files...
-    announcements,  # NEW: GET/PUT /admin/announcements
+    admin_extra,    # PATCH /admin/users/{id}, POST /admin/users/{id}/reset-password
+    referral_files, # /referrals/{id}/files...
+    announcements,  # /admin/announcements
+    admin_referrals # <-- this module's router already has prefix="/admin"
 )
 
 APP_TITLE = "Covenant Azor Backend"
 APP_VERSION = os.environ.get("AZOR_APP_VERSION", "dev")
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-]
 
 app = FastAPI(title=APP_TITLE, version=APP_VERSION)
-app.include_router(admin_referrals.router)
 
-# CORS
+# CORS (single middleware, includes both localhost & 127.0.0.1)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,7 +54,7 @@ app.include_router(mfa.router, prefix="/users/mfa", tags=["mfa"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(me.router, prefix="/users", tags=["users"])
 
-# Users (existing admin-facing user endpoints if any live here)
+# Users (if you have admin-facing user endpoints living under /users)
 app.include_router(users.router, prefix="/users", tags=["users-admin"])
 
 # Referrals (agent + shared)
@@ -64,13 +63,16 @@ app.include_router(referrals.router, prefix="/referrals", tags=["referrals"])
 # Admin (existing)
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
-# Admin extras (NEW) — do NOT add another prefix; module defines its own (/admin/…)
+# Admin extras (module defines /admin/... inside the module)
 app.include_router(admin_extra.router)
 
-# Referral files (NEW) — module defines /referrals/{id}/files…
+# Admin referrals — DO NOT add another prefix here; the module already sets prefix="/admin"
+app.include_router(admin_referrals.router, tags=["admin"])
+
+# Referral files (module defines /referrals/{id}/files…)
 app.include_router(referral_files.router)
 
-# Announcements (NEW) — module defines /admin/announcements
+# Announcements (module defines /admin/announcements)
 app.include_router(announcements.router)
 
 # Audit, metrics, support
