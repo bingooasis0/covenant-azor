@@ -10,25 +10,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate required secrets
-        run: |
-          test -n "${{ secrets.SSH_PRIVATE_KEY }}" || { echo "SSH_PRIVATE_KEY missing"; exit 1; }
-          test -n "${{ secrets.SSH_KNOWN_HOSTS }}" || { echo "SSH_KNOWN_HOSTS missing"; exit 1; }
-          test -n "${{ secrets.SSH_HOST }}" || { echo "SSH_HOST missing"; exit 1; }
-          test -n "${{ secrets.SSH_PORT }}" || { echo "SSH_PORT missing"; exit 1; }
-          test -n "${{ secrets.SSH_USER }}" || { echo "SSH_USER missing"; exit 1; }
-
       - name: Load SSH key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: |
             ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Write known_hosts
+      - name: Build known_hosts from runner
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          ssh-keyscan -T 10 -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+          echo "known_hosts ready"
 
       - name: Preflight SSH
         run: |
@@ -37,6 +30,6 @@ jobs:
 
       - name: Deploy
         run: |
-          ssh -p "${{ secrets.SSH_PORT }}" \
+          ssh -o StrictHostKeyChecking=yes -p "${{ secrets.SSH_PORT }}" \
               "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
               'bash -lc "/opt/covenant-azor/deploy_remote.sh"'
