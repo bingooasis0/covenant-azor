@@ -1,19 +1,72 @@
-
 "use client";
-import { useState } from "react";
-import { api } from "../lib/api";
-import { useToast } from "./Toast";
-export default function EmailModal({ open, onClose }:{open:boolean; onClose:()=>void}){
-  const [message,setMessage]=useState(""); const { push } = useToast();
-  if(!open) return null;
-  async function send(){
-    const token = localStorage.getItem("token"); if(!token) return;
-    try{ await api.post("/support/contact", { message }, { headers:{ Authorization:`Bearer ${token}` }}); push({type:"success", text:"Email sent"}); setMessage(""); onClose(); }
-    catch{ push({type:"error", text:"Failed to send"}); }
+
+import React, { useState } from "react";
+import { apiFetch, API_BASE } from "@/lib/api";
+
+type Props = {
+  onClose: () => void;
+};
+
+export default function EmailModal({ onClose }: Props) {
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+
+  async function send() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      setErr("You must be signed in.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await apiFetch("/support/contact", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || `Request failed (${res.status})`);
+      }
+      setOk(true);
+      setMessage("");
+      onClose();
+    } catch (e: any) {
+      setErr(e?.message || "Failed to send");
+    } finally {
+      setBusy(false);
+    }
   }
-  return (<div className="dialog-backdrop" onClick={onClose}><div className="dialog" onClick={(e)=>e.stopPropagation()}>
-    <h3 className="text-lg font-semibold mb-3">Message Covenant</h3>
-    <textarea className="w-full border rounded p-2 min-h-[120px]" placeholder="Type your message..." value={message} onChange={e=>setMessage(e.target.value)} />
-    <div className="mt-3 flex justify-end gap-2"><button className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={send}>Send</button></div>
-  </div></div>);
+
+  return (
+    <div className="dialog-backdrop" onClick={onClose}>
+      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+        <header>
+          <div>Contact Support</div>
+          <button className="btn ghost" onClick={onClose}>Close</button>
+        </header>
+        <section className="space-y-3">
+          {err && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{err}</div>}
+          <textarea
+            className="input w-full min-h-[140px]"
+            placeholder="Describe your issue…"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
+        </section>
+        <footer>
+          <button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn" disabled={busy || !message.trim()} onClick={send}>
+            {busy ? "Sending…" : "Send"}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
 }
