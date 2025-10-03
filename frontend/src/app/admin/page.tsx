@@ -209,6 +209,21 @@ export default function AdminPage() {
     setModalError(null);
     setPwOpen(true);
   }
+  async function confirmResetMfa(user: User) {
+    showConfirm(
+      `Are you sure you want to reset MFA for ${user.email}?`,
+      async () => {
+        try {
+          await adminResetUserMfa(user.id);
+          await loadUsers();
+          showNotification("success", "MFA reset successfully");
+        } catch (e: any) {
+          showNotification("error", e?.message || "MFA reset failed");
+        }
+      }
+    );
+  }
+
   async function confirmDeleteUser(user: User) {
     showConfirm(
       `Are you sure you want to remove ${user.email}?`,
@@ -507,7 +522,7 @@ export default function AdminPage() {
                         <button className="btn ghost text-xs px-2 py-1" onClick={() => openPw(u)}>
                           Reset Password
                         </button>
-                        <button className="btn ghost text-xs px-2 py-1" onClick={() => adminResetUserMfa(u.id)}>
+                        <button className="btn ghost text-xs px-2 py-1" onClick={() => confirmResetMfa(u)}>
                           Reset MFA
                         </button>
                         <button className="btn ghost text-xs px-2 py-1" onClick={() => confirmDeleteUser(u)}>
