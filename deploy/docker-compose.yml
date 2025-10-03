@@ -24,7 +24,7 @@ services:
       REQUIRE_MFA: "true"
       MFA_ISSUER: "Azor"
       FRONTEND_ORIGIN: "https://partner.covenanttechnology.net"
-      DATABASE_URL: postgresql+psycopg2://covenant:G4TtLtcjrqQxnJGoMJh6FYiovxTyQF4Q-txK!uvZUm!NFb@hRE@postgres:5432/azor
+      DATABASE_URL: postgresql+psycopg2://covenant:G4TtLtcjrqQxnJGoMJh6FYiovxTyQF4Q-txK%21uvZUm%21NFb%40hRE@postgres:5432/azor
       JWT_SECRET: e295a1ed90f222e3008ade67b613255b71186f390c2d59ff6b56150a65035822
       JWT_ALGORITHM: HS256
       JWT_TTL_MIN: 30
