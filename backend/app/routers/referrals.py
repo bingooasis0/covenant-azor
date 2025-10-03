@@ -109,7 +109,7 @@ def create_referral(
                         agent_id, opportunity_types, locations, environment, reason
                     ) VALUES (
                         :ref_no, :company, 'new', :contact_name, :contact_email, :contact_phone, :notes,
-                        :agent_id, CAST(:opportunity_types AS JSONB), CAST(:locations AS JSONB), CAST(:environment AS JSONB), :reason
+                        :agent_id, :opportunity_types::text[], :locations::text[], CAST(:environment AS JSONB), :reason
                     )
                     RETURNING id, ref_no, company, status, created_at, contact_name, contact_email,
                               contact_phone, notes, agent_id, opportunity_types, locations, environment, reason
@@ -123,8 +123,8 @@ def create_referral(
                     "contact_phone": payload.contact_phone,
                     "notes": payload.notes,
                     "agent_id": user_id,
-                    "opportunity_types": json.dumps(payload.opportunity_types or []),
-                    "locations": json.dumps(payload.locations or []),
+                    "opportunity_types": payload.opportunity_types or [],
+                    "locations": payload.locations or [],
                     "environment": json.dumps(payload.environment or {}),
                     "reason": payload.reason,
                 },
