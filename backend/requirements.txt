@@ -15,3 +15,4 @@ requests==2.32.3
 loguru==0.7.2
 PyJWT==2.8.0
 redis==6.4.0
+msal==1.31.1
