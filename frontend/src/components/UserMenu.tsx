@@ -8,7 +8,13 @@ import { useState } from "react";
 export default function UserMenu({ name, role }:{ name:string; role:"AZOR"|"COVENANT"|string }){
   const router = useRouter();
   const [open,setOpen] = useState(false);
-  function logout(){ localStorage.clear(); document.cookie="token=; Max-Age=0; path=/"; document.cookie="role=; Max-Age=0; path=/"; router.push("/"); }
+  function logout(){
+    localStorage.clear();
+    document.cookie="token=; Max-Age=0; path=/";
+    document.cookie="role=; Max-Age=0; path=/";
+    document.cookie="azor_access=; Max-Age=0; path=/";
+    router.push("/");
+  }
   return (
     <Menu as="div" className="relative inline-block text-left">
       <Menu.Button className="inline-flex items-center gap-2 text-white">

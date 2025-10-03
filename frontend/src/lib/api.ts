@@ -28,6 +28,28 @@ http.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+// Response interceptor to handle 401 unauthorized
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear all tokens on 401
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        document.cookie = "azor_access=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+
+        // Only redirect if not already on login page
+        if (window.location.pathname !== "/" && window.location.pathname !== "/login") {
+          window.location.href = "/";
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export function errText(e: any): string {
   const d = e?.response?.data;
   if (typeof d === "string") return d;
@@ -65,7 +87,9 @@ export async function login(username: string, password: string, mfaCode?: string
     try {
       localStorage.setItem("token", data.access_token);
       if (data?.role) localStorage.setItem("role", data.role);
-      document.cookie = `token=${data.access_token}; path=/`;
+      // Set both cookies for compatibility with middleware and old code
+      document.cookie = `token=${data.access_token}; path=/; SameSite=Lax`;
+      document.cookie = `azor_access=${data.access_token}; path=/; SameSite=Lax`;
     } catch {}
   }
   return data as { access_token?: string; token_type?: "bearer"; role?: Role; mfa_enroll?: boolean };
