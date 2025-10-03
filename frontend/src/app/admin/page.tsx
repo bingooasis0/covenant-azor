@@ -278,10 +278,17 @@ export default function AdminPage() {
   }
 
   /* ------------------ referrals actions ------------------ */
-  function openViewRef(r: Referral) {
+  async function openViewRef(r: Referral) {
     setViewRef(r);
+    // Load files for view
+    try {
+      const list = (await getReferralFiles(r.id)) as any;
+      setRfFiles(Array.isArray(list) ? list : (list?.files || []));
+    } catch {
+      setRfFiles([]);
+    }
   }
-  function openEditRef(r: Referral) {
+  async function openEditRef(r: Referral) {
     setEditRef(r);
     setEf({
       company: r.company || "",
@@ -1054,9 +1061,31 @@ export default function AdminPage() {
                 <div className="text-sm whitespace-pre-wrap">{viewRef.reason || "—"}</div>
               </div>
 
-              <div>
+              <div className="border-b pb-3">
                 <h3 className="font-semibold mb-2">Notes</h3>
                 <div className="text-sm whitespace-pre-wrap">{viewRef.notes || "—"}</div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Files</h3>
+                {rfFiles.length === 0 ? (
+                  <div className="text-sm text-gray-500">No files uploaded</div>
+                ) : (
+                  <ul className="text-sm space-y-2">
+                    {rfFiles.map((f) => (
+                      <li key={f.file_id} className="flex items-center justify-between gap-3">
+                        <span>{f.name} ({f.size} bytes)</span>
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_API_BASE}/referrals/${viewRef.id}/files/${f.file_id}/download`}
+                          download={f.name}
+                          className="btn ghost text-sm"
+                        >
+                          Download
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </section>
             <footer>
