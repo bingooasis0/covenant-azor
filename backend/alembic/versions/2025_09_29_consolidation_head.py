@@ -48,7 +48,8 @@ def ensure_users(bind):
             "users",
             sa.Column("id", psql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
             sa.Column("email", sa.Text(), nullable=False, unique=True),
-            sa.Column("name", sa.Text(), nullable=True),
+            sa.Column("first_name", sa.Text(), nullable=False, server_default=sa.text("''")),
+            sa.Column("last_name", sa.Text(), nullable=False, server_default=sa.text("''")),
             sa.Column("role", sa.Text(), nullable=False, server_default=sa.text("'AZOR'")),
             sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("TRUE")),
             sa.Column("password_hash", sa.Text(), nullable=False),
@@ -57,6 +58,11 @@ def ensure_users(bind):
         )
         op.create_index("ix_users_email", "users", ["email"], unique=True)
     else:
+        # Ensure first_name and last_name columns exist
+        if not column_exists(bind, "users", "first_name"):
+            op.add_column("users", sa.Column("first_name", sa.Text(), nullable=False, server_default=sa.text("''")))
+        if not column_exists(bind, "users", "last_name"):
+            op.add_column("users", sa.Column("last_name", sa.Text(), nullable=False, server_default=sa.text("''")))
         # Ensure password_hash column exists
         if not column_exists(bind, "users", "password_hash"):
             op.add_column("users", sa.Column("password_hash", sa.Text(), nullable=True))
@@ -146,9 +152,9 @@ def ensure_audit_event(bind):
         op.create_table(
             "audit_event",
             sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
-            sa.Column("user_id", psql.UUID(as_uuid=True), nullable=True),
+            sa.Column("actor_user_id", psql.UUID(as_uuid=True), nullable=True),
             sa.Column("action", sa.Text(), nullable=False),
-            sa.Column("entity", sa.Text(), nullable=True),
+            sa.Column("entity_type", sa.Text(), nullable=True),
             sa.Column("entity_id", psql.UUID(as_uuid=True), nullable=True),
             sa.Column("ip", sa.Text(), nullable=True),
             sa.Column("user_agent", sa.Text(), nullable=True),
@@ -156,14 +162,27 @@ def ensure_audit_event(bind):
             sa.Column("created_at", psql.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
         )
         op.create_index("ix_audit_event_created_at", "audit_event", ["created_at"], unique=False)
-        op.create_index("ix_audit_event_user_id", "audit_event", ["user_id"], unique=False)
+        op.create_index("ix_audit_event_actor_user_id", "audit_event", ["actor_user_id"], unique=False)
     else:
+        # Rename old columns if they exist
+        if column_exists(bind, "audit_event", "user_id") and not column_exists(bind, "audit_event", "actor_user_id"):
+            op.alter_column("audit_event", "user_id", new_column_name="actor_user_id")
+        if column_exists(bind, "audit_event", "entity") and not column_exists(bind, "audit_event", "entity_type"):
+            op.alter_column("audit_event", "entity", new_column_name="entity_type")
+        # Ensure columns exist
+        if not column_exists(bind, "audit_event", "actor_user_id"):
+            op.add_column("audit_event", sa.Column("actor_user_id", psql.UUID(as_uuid=True), nullable=True))
+        if not column_exists(bind, "audit_event", "entity_type"):
+            op.add_column("audit_event", sa.Column("entity_type", sa.Text(), nullable=True))
         if not column_exists(bind, "audit_event", "meta"):
             op.add_column("audit_event", sa.Column("meta", psql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")))
+        # Ensure indexes
         if not index_exists(bind, "audit_event", "ix_audit_event_created_at"):
             op.create_index("ix_audit_event_created_at", "audit_event", ["created_at"], unique=False)
-        if not index_exists(bind, "audit_event", "ix_audit_event_user_id"):
-            op.create_index("ix_audit_event_user_id", "audit_event", ["user_id"], unique=False)
+        if index_exists(bind, "audit_event", "ix_audit_event_user_id"):
+            op.drop_index("ix_audit_event_user_id", table_name="audit_event")
+        if not index_exists(bind, "audit_event", "ix_audit_event_actor_user_id"):
+            op.create_index("ix_audit_event_actor_user_id", "audit_event", ["actor_user_id"], unique=False)
 
 def upgrade():
     bind = op.get_bind()
