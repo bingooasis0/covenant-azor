@@ -9,6 +9,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend ./
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_BASE=https://partner.covenanttechnology.net/api
+ENV NEXT_PUBLIC_HEADER_AUTH=disabled
 RUN npm run build || echo "Build step skipped if not configured"
 
 FROM node:20-alpine AS runner
