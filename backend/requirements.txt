@@ -13,3 +13,5 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
 requests==2.32.3
 loguru==0.7.2
+PyJWT==2.8.0
+redis==6.4.0
