@@ -12,7 +12,8 @@
       "Bash(git push:*)",
       "Bash(python:*)",
       "Bash(gh run list:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(ssh covenant@partner.covenanttechnology.net \"cat ~/covenant-azor/deploy/docker-compose.yml | grep -A 2 ''frontend:\\|backend:'' | grep image\")"
     ],
     "deny": [],
     "ask": []

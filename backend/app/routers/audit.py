@@ -30,6 +30,7 @@ def list_audit_events(
                    ae.entity_type,
                    ae.entity_id,
                    ae.actor_user_id,
+                   ae.metadata,
                    u.email as actor_email,
                    u.first_name as actor_first_name,
                    u.last_name as actor_last_name

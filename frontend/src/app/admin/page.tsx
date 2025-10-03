@@ -27,7 +27,7 @@ import {
   type Referral,
   type User,
 } from "@/lib/api";
-import { formatAuditAction, type AuditRow } from "@/lib/auditLabel";
+import { formatAuditAction, formatAuditChanges, type AuditRow } from "@/lib/auditLabel";
 
 /* ------------------ cookie helpers ------------------ */
 function getCookie(name: string): string | null {
@@ -606,12 +606,13 @@ export default function AdminPage() {
                 <th className="px-3 py-2 text-left border-b">Actor</th>
                 <th className="px-3 py-2 text-left border-b">Action</th>
                 <th className="px-3 py-2 text-left border-b">Entity</th>
+                <th className="px-3 py-2 text-left border-b">Changes</th>
               </tr>
             </thead>
             <tbody>
               {audit.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-3 text-center text-gray-500">
+                  <td colSpan={6} className="px-3 py-3 text-center text-gray-500">
                     {loadingAudit ? "Loading…" : "No events"}
                   </td>
                 </tr>
@@ -623,6 +624,7 @@ export default function AdminPage() {
                     <td className="px-3 py-2">{`${a.actor_first_name || ""} ${a.actor_last_name || ""}`.trim() || "-"}</td>
                     <td className="px-3 py-2">{formatAuditAction(a, refNoById)}</td>
                     <td className="px-3 py-2">{a.entity_type || "-"}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600">{formatAuditChanges(a)}</td>
                   </tr>
                 ))
               )}
