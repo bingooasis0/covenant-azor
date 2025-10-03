@@ -47,9 +47,8 @@ def admin_create_user(payload: AdminUserCreate, admin=Depends(require_admin), db
         raise HTTPException(status_code=422, detail="Password must be at least 15 characters")
 
     # Hash the password
-    import argon2
-    ph = argon2.PasswordHasher()
-    hashed = ph.hash(payload.password)
+    import bcrypt
+    hashed = bcrypt.hashpw(payload.password.encode("utf-8"), bcrypt.gensalt(12)).decode("utf-8")
 
     row = db.execute(
         text("""
@@ -158,9 +157,8 @@ def admin_reset_password(user_id: str, payload: dict, admin=Depends(require_admi
         if not password or len(password) < 15:
             raise HTTPException(status_code=400, detail="Password must be at least 15 characters")
         # Hash the password
-        import argon2
-        ph = argon2.PasswordHasher()
-        hashed = ph.hash(password)
+        import bcrypt
+        hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(12)).decode("utf-8")
         db.execute(
             text("UPDATE users SET password_hash = :hash WHERE id = :id"),
             {"hash": hashed, "id": user_id}
@@ -170,9 +168,8 @@ def admin_reset_password(user_id: str, payload: dict, admin=Depends(require_admi
         chars = string.ascii_letters + string.digits + "!@#$%^&*"
         new_password = ''.join(random.choice(chars) for _ in range(20))
 
-        import argon2
-        ph = argon2.PasswordHasher()
-        hashed = ph.hash(new_password)
+        import bcrypt
+        hashed = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt(12)).decode("utf-8")
 
         db.execute(
             text("UPDATE users SET password_hash = :hash WHERE id = :id"),

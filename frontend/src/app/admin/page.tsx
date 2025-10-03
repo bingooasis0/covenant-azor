@@ -224,6 +224,7 @@ export default function AdminPage() {
       });
       await loadUsers(); // refetch after PATCH (consistency over speed)
       setEditOpen(false);
+      showNotification("success", "User updated successfully");
     } catch (e: any) {
       setModalError(e?.message || "Update failed");
     } finally {
@@ -241,6 +242,7 @@ export default function AdminPage() {
     try {
       await adminResetUserPassword(editUser.id, pwTemp);
       setPwOpen(false);
+      showNotification("success", "Password reset successfully");
     } catch (e: any) {
       setModalError(e?.message || "Password reset failed");
     } finally {
@@ -267,6 +269,7 @@ export default function AdminPage() {
       await loadUsers(); // ensure consistent state after create
       setInviteOpen(false);
       setInvEmail(""); setInvFirst(""); setInvLast(""); setInvPwd(""); setInvRole("AZOR");
+      showNotification("success", "User created successfully");
     } catch (e: any) {
       setModalError(e?.message || "Invite failed");
     } finally {
@@ -351,6 +354,7 @@ export default function AdminPage() {
         setRfNew([]);
       }
       setEditRef(null);
+      showNotification("success", "Referral updated successfully");
     } catch (e: any) {
       setModalError(e?.message || "Save failed");
     } finally {
