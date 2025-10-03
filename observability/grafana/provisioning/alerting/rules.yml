@@ -1,0 +1,131 @@
+\
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: azor-loki-log-alerts
+    folder: Azor Alerts
+    interval: 1m
+    rules:
+      - uid: azor-5xx-rate
+        title: Backend 5xx rate > 1% (5m)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queries:
+              - refId: A
+                datasourceUid: loki
+                expr: >
+                  ( sum(rate({app="backend"} | json | unwrap status |
+                    status >= 500 [5m])) )
+                  / ignoring(status)
+                  ( sum(rate({app="backend"} | json [5m])) )
+                queryType: range
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+        for: 5m
+        annotations:
+          summary: "Backend 5xx rate above 1% over 5 minutes"
+        labels:
+          severity: high
+        noDataState: NoData
+        execErrState: Error
+        isPaused: false
+        thresholds:
+          - type: gt
+            value: 0.01
+
+      - uid: azor-jwt-invalid
+        title: JWT decode failures > 5/min
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queries:
+              - refId: A
+                datasourceUid: loki
+                expr: |
+                  sum(rate({app="backend"} |= "Invalid token" [5m]))
+                queryType: range
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+        for: 5m
+        annotations:
+          summary: "JWT decode/invalid token errors elevated"
+        labels:
+          severity: medium
+        noDataState: NoData
+        execErrState: Error
+        isPaused: false
+        thresholds:
+          - type: gt
+            value: 5
+
+      - uid: azor-db-errors
+        title: DB errors > 1/min (OperationalError/Deadlock)
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queries:
+              - refId: A
+                datasourceUid: loki
+                expr: |
+                  sum(rate({app="backend"} |= "OperationalError" [5m])) +
+                  sum(rate({app="backend"} |= "deadlock detected" [5m]))
+                queryType: range
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+        for: 5m
+        annotations:
+          summary: "Database error rate elevated"
+        labels:
+          severity: high
+        noDataState: NoData
+        execErrState: Error
+        isPaused: false
+        thresholds:
+          - type: gt
+            value: 1
+
+      - uid: azor-rate-limit-token
+        title: Rate limit spikes on /auth/token > 20/min
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: loki
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queries:
+              - refId: A
+                datasourceUid: loki
+                expr: |
+                  sum(rate({app="backend"} | json | route="/auth/token" |~ "429|rate_limited" [5m]))
+                queryType: range
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+        for: 5m
+        annotations:
+          summary: "Spike in rate-limited token requests"
+        labels:
+          severity: low
+        noDataState: NoData
+        execErrState: Error
+        isPaused: false
+        thresholds:
+          - type: gt
+            value: 20

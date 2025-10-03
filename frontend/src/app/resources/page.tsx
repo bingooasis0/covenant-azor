@@ -4,11 +4,11 @@ export default function ResourcesPage() {
   return (
     <>
       <style jsx global>{`
-        .content {
+        .content:has(.resources-page-wrapper) {
           padding: 0 !important;
         }
       `}</style>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="resources-page-wrapper min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Downloads Section */}
         <section className="mb-16">
@@ -26,7 +26,7 @@ export default function ResourcesPage() {
                 className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 p-6 border border-gray-200 hover:border-blue-300"
               >
                 <div className="flex items-start gap-4">
-                  <div className={`flex-shrink-0 w-12 h-12 rounded-lg bg-${item.color}-100 text-${item.color}-600 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-lg ${item.iconBg} ${item.iconText} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                     {item.icon}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -354,14 +354,14 @@ export default function ResourcesPage() {
   );
 }
 
-// Sample data - replace with actual data
 const downloads = [
   {
     id: 1,
     title: 'Service Catalog PDF',
     description: 'Comprehensive overview of all our services and pricing',
     href: '#',
-    color: 'blue',
+    iconBg: 'bg-blue-100',
+    iconText: 'text-blue-600',
     icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
   },
   {
@@ -369,7 +369,8 @@ const downloads = [
     title: 'Quick Reference Guide',
     description: 'One-page summary for quick client discussions',
     href: '#',
-    color: 'green',
+    iconBg: 'bg-green-100',
+    iconText: 'text-green-600',
     icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
   }
 ];

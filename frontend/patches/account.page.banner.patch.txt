@@ -1,0 +1,7 @@
+/* frontend/src/app/account/page.banner.patch */
+// At top:
+import ErrorBanner from "@/components/ui/ErrorBanner";
+
+// Replace 401/generic banners with:
+// {authError && <ErrorBanner kind="warn">Session expired or unauthorized. Please <a className="link" href="/">sign in again</a>.</ErrorBanner>}
+// {pageError && !authError && <ErrorBanner>{pageError}</ErrorBanner>}

@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: azor
+          POSTGRES_USER: azor
+          POSTGRES_PASSWORD: azor
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U azor -d azor"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd="redis-cli ping || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://azor:azor@localhost:5432/azor
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps (backend)
+        run: |
+          set -eux
+          if [ -f backend/requirements.txt ]; then
+            python -m pip install --upgrade pip
+            pip install -r backend/requirements.txt
+          else:
+            python -m pip install --upgrade pip
+            pip install alembic SQLAlchemy psycopg2-binary pytest python-dotenv
+          fi
+
+      - name: Ensure Alembic config exists
+        run: |
+          set -eux
+          if [ ! -f backend/alembic.ini ]; then
+            echo "[alembic]" > backend/alembic.ini
+            echo "script_location = backend/alembic" >> backend/alembic.ini
+            echo "" >> backend/alembic.ini
+            echo "[loggers]" >> backend/alembic.ini
+            echo "keys = root,sqlalchemy,alembic" >> backend/alembic.ini
+            echo "" >> backend/alembic.ini
+            echo "[logger_root]" >> backend/alembic.ini
+            echo "level = WARN" >> backend/alembic.ini
+            echo "handlers = stderr" >> backend/alembic.ini
+            echo "" >> backend/alembic.ini
+            echo "[handler_stderr]" >> backend/alembic.ini
+            echo "class = StreamHandler" >> backend/alembic.ini
+            echo "args = (sys.stderr,)" >> backend/alembic.ini
+            echo "level = NOTSET" >> backend/alembic.ini
+            echo "formatter = generic" >> backend/alembic.ini
+            echo "" >> backend/alembic.ini
+            echo "[formatters]" >> backend/alembic.ini
+            echo "keys = generic" >> backend/alembic.ini
+            echo "" >> backend/alembic.ini
+            echo "[formatter_generic]" >> backend/alembic.ini
+            echo "format = %(levelname)-5.5s [%(name)s] %(message)s" >> backend/alembic.ini
+          fi
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U azor -d azor && break
+            sleep 1
+          done
+
+      - name: Run Alembic upgrade head
+        run: |
+          set -eux
+          alembic -c backend/alembic.ini upgrade head
+
+      - name: Run pytest (DB schema smoke tests)
+        run: |
+          set -eux
+          python -m pytest -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push backend image (if Dockerfile exists)
+        if: ${{ hashFiles('backend/Dockerfile') != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/covenant-azor-backend:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/covenant-azor-backend:latest
+
+      - name: Build & Push frontend image (if Dockerfile exists)
+        if: ${{ hashFiles('frontend/Dockerfile') != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/covenant-azor-frontend:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/covenant-azor-frontend:latest

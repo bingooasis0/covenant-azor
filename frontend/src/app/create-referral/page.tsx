@@ -3,7 +3,7 @@
 
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createReferral, updateReferral, type CreateReferralPayload } from "@/lib/api";
+import { createReferral, updateReferral } from "@/lib/api";
 
 const MAX_FILES = 10, MAX_FILE_MB = 25, MAX_TOTAL_MB = 100;
 
@@ -198,7 +198,7 @@ export default function CreateReferralPage(){
       const other = String(fd.get("opportunity_other") || "").trim();
       if (other) opportunity.push(other);
 
-      const payload: CreateReferralPayload = {
+      const payload: any = {
         company: String(fd.get("company") || ""),
         contact_name: String(fd.get("contact_name") || ""),
         contact_email: String(fd.get("contact_email") || ""),

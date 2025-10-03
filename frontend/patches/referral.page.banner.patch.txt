@@ -1,0 +1,6 @@
+/* frontend/src/app/referral/page.banner.patch */
+// At top:
+import ErrorBanner from "@/components/ui/ErrorBanner";
+
+// Replace error banners with:
+// {error && <ErrorBanner>{error}</ErrorBanner>}

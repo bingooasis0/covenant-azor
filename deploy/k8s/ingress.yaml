@@ -1,0 +1,29 @@
+# deploy/k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: azor-ingress
+  namespace: covenant-azor
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+spec:
+  tls:
+    - hosts: [ "staging.covenant-azor.example" ]
+      secretName: staging-tls
+  rules:
+    - host: staging.covenant-azor.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: azor-frontend
+                port: { number: 80 }
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: azor-backend
+                port: { number: 80 }

@@ -22,7 +22,7 @@ http.interceptors.request.use((cfg) => {
   const ck = getCookie("azor_access") || getCookie("token");
   const tok = ls || ck;
   if (tok) {
-    cfg.headers = cfg.headers ?? {};
+    if (!cfg.headers) cfg.headers = {} as any;
     (cfg.headers as any).Authorization = `Bearer ${tok}`;
   }
   return cfg;

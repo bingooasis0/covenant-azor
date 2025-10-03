@@ -1,0 +1,20 @@
+# deploy/k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azor-config
+  namespace: covenant-azor
+data:
+  REQUIRE_MFA: "true"
+  MFA_ISSUER: "Azor"
+  JWT_ALGORITHM: HS256
+  JWT_TTL_MIN: "30"
+  RATE_LIMIT_WINDOW_SECS: "60"
+  RATE_LIMIT_PREFIX: rl:
+  RATE_LIMIT_AUTH_PER_MIN: "10"
+  RATE_LIMIT_WRITE_PER_MIN: "60"
+  RATE_LIMIT_READ_PER_MIN: "120"
+  ENABLE_CSP: "true"
+  ENABLE_HSTS: "true"
+  COOKIE_SAMESITE: Lax
+  AUTH_COOKIE_NAME: azor_access
