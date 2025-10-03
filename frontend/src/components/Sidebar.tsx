@@ -21,7 +21,7 @@ export default function Sidebar(){
       <div className="brand nav-brand-block">
   <div className="nav-powered-by">powered by</div>
   <div className="nav-logos">
-    <img src="/images/covenant-logo.png" alt="Covenant" className="nav-logo" style={{height:45}} /><div className="mid-star" style={{color:'#252a26'}}>✦</div>
+    <img src="/images/covenant-logo.png" alt="Covenant" className="nav-logo" style={{height:45}} /><div className="mid-star" style={{color:'#818493'}}>✦</div>
     <img src="/images/azor-logo.png" alt="Azor" className="nav-logo" style={{height:45}} />
   </div>
 </div>
