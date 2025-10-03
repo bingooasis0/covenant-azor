@@ -23,6 +23,8 @@ import {
   updateAnnouncements,
   // Audit
   fetchAuditPage,
+  // HTTP client
+  http,
   // Types
   type Referral,
   type User,
@@ -434,18 +436,15 @@ export default function AdminPage() {
             className="btn ghost"
             onClick={async () => {
               try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/admin/test-email`, {
-                  method: 'POST',
-                  credentials: 'include',
-                });
-                if (response.ok) {
-                  showNotification("success", "Test email sent successfully");
-                } else {
-                  const data = await response.json();
-                  showNotification("error", data?.detail || "Failed to send test email");
-                }
+                await http.post("/admin/test-email");
+                showNotification("success", "Test email sent successfully");
               } catch (e: any) {
-                showNotification("error", e?.message || "Failed to send test email");
+                if (isUnauthorized(e)) {
+                  setAuthError(true);
+                } else {
+                  const msg = e?.response?.data?.detail || e?.message || "Failed to send test email";
+                  showNotification("error", msg);
+                }
               }
             }}
           >
