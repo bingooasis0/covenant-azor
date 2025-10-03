@@ -25,9 +25,18 @@ def _token():
         token_cache=cache
     )
     accts = app.get_accounts()
+    print(f"[Graph] Cache file: {path}, exists: {path.exists()}, size: {path.stat().st_size if path.exists() else 0}")
+    print(f"[Graph] Found {len(accts)} accounts in cache")
+    if accts:
+        print(f"[Graph] Account: {accts[0].get('username', 'unknown')}")
+
     res = app.acquire_token_silent(SCOPE, account=accts[0] if accts else None)
     if not res or "access_token" not in res:
-        raise RuntimeError("Graph token unavailable. Reseat device-code cache.")
+        error_detail = res.get("error_description") if res else "No response from MSAL"
+        print(f"[Graph] Token acquisition failed: {error_detail}")
+        raise RuntimeError(f"Graph token unavailable. Reseat device-code cache. Detail: {error_detail}")
+
+    print(f"[Graph] Token acquired successfully")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(cache.serialize(), encoding="utf-8")
     return res["access_token"]
