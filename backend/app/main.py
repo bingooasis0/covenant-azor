@@ -41,6 +41,7 @@ for path in [
     "app.routers.referrals_extras",
     "app.routers.admin_referrals",
     "app.routers.admin_users",
+    "app.routers.admin_test",
     "app.routers.audit",
     "app.routers.announcements",
     "app.routers.admin_announcements",

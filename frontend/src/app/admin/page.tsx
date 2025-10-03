@@ -48,6 +48,17 @@ function isUnauthorized(err: any) {
   return err.status === 401 || /\b401\b/.test(String(err?.message || ""));
 }
 
+function generatePassword(length: number = 20): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  let password = '';
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < length; i++) {
+    password += chars[array[i] % chars.length];
+  }
+  return password;
+}
+
 type RefFile = { file_id: string; name: string; size: number; content_type?: string; created_at?: string };
 
 export default function AdminPage() {
@@ -404,6 +415,27 @@ export default function AdminPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Admin</h1>
         <div className="flex gap-2">
+          <button
+            className="btn ghost"
+            onClick={async () => {
+              try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/admin/test-email`, {
+                  method: 'POST',
+                  credentials: 'include',
+                });
+                if (response.ok) {
+                  showNotification("success", "Test email sent successfully");
+                } else {
+                  const data = await response.json();
+                  showNotification("error", data?.detail || "Failed to send test email");
+                }
+              } catch (e: any) {
+                showNotification("error", e?.message || "Failed to send test email");
+              }
+            }}
+          >
+            Send Test Email
+          </button>
           <button className="btn ghost" onClick={() => setAnnOpen(true)}>
             Edit announcements
           </button>
@@ -684,7 +716,16 @@ export default function AdminPage() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-1">Temp password (≥15)</label>
-                  <input className="input w-full" value={invPwd} onChange={(e) => setInvPwd(e.target.value)} />
+                  <div className="flex gap-2">
+                    <input className="input flex-1" value={invPwd} onChange={(e) => setInvPwd(e.target.value)} />
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => setInvPwd(generatePassword(20))}
+                    >
+                      Generate
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
@@ -764,12 +805,21 @@ export default function AdminPage() {
               )}
               <div>
                 <label className="block text-sm font-medium mb-1">Temporary password (≥15 chars)</label>
-                <input
-                  className="input w-full"
-                  value={pwTemp}
-                  onChange={(e) => setPwTemp(e.target.value)}
-                  minLength={15}
-                />
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1"
+                    value={pwTemp}
+                    onChange={(e) => setPwTemp(e.target.value)}
+                    minLength={15}
+                  />
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={() => setPwTemp(generatePassword(20))}
+                  >
+                    Generate
+                  </button>
+                </div>
               </div>
             </section>
             <footer>
