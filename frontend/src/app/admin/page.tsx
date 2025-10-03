@@ -430,6 +430,7 @@ export default function AdminPage() {
                 <th className="px-3 py-2 text-left border-b">Email</th>
                 <th className="px-3 py-2 text-left border-b">Name</th>
                 <th className="px-3 py-2 text-left border-b">Role</th>
+                <th className="px-3 py-2 text-left border-b">MFA</th>
                 <th className="px-3 py-2 text-left border-b">Created</th>
                 <th className="px-3 py-2 text-right border-b w-0">Actions</th>
               </tr>
@@ -437,7 +438,7 @@ export default function AdminPage() {
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-3 text-center text-gray-500">
+                  <td colSpan={6} className="px-3 py-3 text-center text-gray-500">
                     No users
                   </td>
                 </tr>
@@ -449,6 +450,15 @@ export default function AdminPage() {
                       {u.first_name} {u.last_name}
                     </td>
                     <td className="px-3 py-2">{u.role}</td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        u.mfa_enabled
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {u.mfa_enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </td>
                     <td className="px-3 py-2">{u.created_at ? new Date(u.created_at).toLocaleString() : "-"}</td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex gap-2 justify-end whitespace-nowrap">

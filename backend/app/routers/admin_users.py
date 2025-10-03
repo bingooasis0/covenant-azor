@@ -26,13 +26,15 @@ def admin_list_users(
 ):
     rows = db.execute(
         text("""
-            SELECT id, email, role,
-                   COALESCE(first_name,'') AS first_name,
-                   COALESCE(last_name,'')  AS last_name,
-                   is_active,
-                   created_at
-              FROM users
-             ORDER BY created_at DESC
+            SELECT u.id, u.email, u.role,
+                   COALESCE(u.first_name,'') AS first_name,
+                   COALESCE(u.last_name,'')  AS last_name,
+                   u.is_active,
+                   u.created_at,
+                   CASE WHEN m.enabled = true THEN true ELSE false END AS mfa_enabled
+              FROM users u
+              LEFT JOIN mfa_credential m ON m.user_id = u.id
+             ORDER BY u.created_at DESC
              LIMIT :lim OFFSET :off
         """),
         {"lim": limit, "off": offset},

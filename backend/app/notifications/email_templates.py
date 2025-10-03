@@ -17,7 +17,7 @@ def referral_submitted(ref_no: str, company: str, agent_email: str, agent_name: 
         for k,v in extra.items():
             lines.append(f"{k}: {v}")
         lines.append("")
-    lines.append("— Sent by Azor")
+    lines.append("Visit: https://partner.covenanttechnology.net")
     return subject, "\n".join(lines)
 
 def referral_updated(ref_no: str, company: str, updates: dict, actor_email: str, actor_name: str) -> tuple[str,str]:
@@ -30,7 +30,7 @@ def referral_updated(ref_no: str, company: str, updates: dict, actor_email: str,
     ]
     for k,v in updates.items():
         lines.append(f"  - {k}: {v}")
-    lines += ["", "— Sent by Azor"]
+    lines += ["", "Visit: https://partner.covenanttechnology.net"]
     return subject, "\n".join(lines)
 
 def referral_note(ref_no: str, company: str, note: str, agent_email: str, agent_name: str) -> tuple[str,str]:
@@ -40,7 +40,7 @@ def referral_note(ref_no: str, company: str, note: str, agent_email: str, agent_
         f"Company:  {company}\n"
         f"Agent:    {agent_name} <{agent_email}>\n"
         f"\n"
-        f"Note:\n{note}\n\n— Sent by Azor"
+        f"Note:\n{note}\n\nVisit: https://partner.covenanttechnology.net"
     )
     return subject, body
 
@@ -54,7 +54,7 @@ def support_contact(agent_email: str, agent_name: str, message: str) -> tuple[st
     subject = "Support Contact (Agent Message)"
     body = (
         f"From: {agent_name} <{agent_email}>\n\n"
-        f"{message}\n\n— Sent by Azor"
+        f"{message}\n\nVisit: https://partner.covenanttechnology.net"
     )
     return subject, body
 
@@ -154,7 +154,7 @@ For security reasons, please:
 
 If you did not request this password reset, please contact your administrator immediately.
 
-— Sent by Azor Admin System"""
+Visit: https://partner.covenanttechnology.net"""
     return subject, body
 
 def admin_mfa_reset(user_email: str, user_name: str) -> tuple[str, str]:
@@ -176,7 +176,7 @@ How to re-enroll:
 
 If you did not request this MFA reset, please contact your administrator immediately.
 
-— Sent by Azor Admin System"""
+Visit: https://partner.covenanttechnology.net"""
     return subject, body
 
 def user_created(user_email: str, user_name: str, password: str, role: str) -> tuple[str, str]:
@@ -199,5 +199,5 @@ To get started:
 
 If you have any questions or did not expect this account creation, please contact your administrator.
 
-— Sent by Azor Admin System"""
+Visit: https://partner.covenanttechnology.net"""
     return subject, body

@@ -157,35 +157,36 @@ export default function Account() {
         <div className="font-semibold mb-3">Security</div>
 
         {/* Change Password */}
-        <div className="mb-4 max-w-3xl">
-          <div className="text-sm font-medium text-gray-700 mb-2">Change Password</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div className="mb-4 max-w-2xl">
+          <div className="text-sm font-medium text-gray-700 mb-3">Change Password</div>
+          <div className="space-y-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Old Password</label>
+              <label className="block text-sm text-gray-700 mb-1.5">Current Password</label>
               <input
-                className="input w-full text-sm"
+                className="input w-full"
                 type="password"
                 autoComplete="current-password"
                 value={oldPwd}
                 onChange={(e) => setOldPwd(e.target.value)}
-                placeholder="Current password"
+                placeholder="Enter your current password"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">New Password</label>
+              <label className="block text-sm text-gray-700 mb-1.5">New Password</label>
               <input
-                className="input w-full text-sm"
+                className="input w-full"
                 type="password"
                 autoComplete="new-password"
                 value={newPwd}
                 onChange={(e) => setNewPwd(e.target.value)}
-                placeholder="New password (min 15 chars)"
+                placeholder="Enter new password (minimum 15 characters)"
               />
+              <p className="text-xs text-gray-500 mt-1">Password must be at least 15 characters long</p>
             </div>
+            <button className="btn" disabled={busy} onClick={onChangePassword}>
+              {busy ? "Updating Password…" : "Update Password"}
+            </button>
           </div>
-          <button className="btn text-sm" disabled={busy} onClick={onChangePassword}>
-            {busy ? "Updating…" : "Update Password"}
-          </button>
         </div>
 
         <hr className="border-gray-200 my-4" />
