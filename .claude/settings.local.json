@@ -5,7 +5,10 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(timeout 10 npm run dev)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
