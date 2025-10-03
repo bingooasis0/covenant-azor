@@ -86,6 +86,11 @@ export default function ReferralPage() {
   const [ef, setEf] = useState<any>({});
   const selRef = useMemo(() => rows.find((r) => r.id === selectedId) || null, [rows, selectedId]);
 
+  /* ------------------ view modal ------------------ */
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewId, setViewId] = useState<string>("");
+  const viewRef = useMemo(() => rows.find((r) => r.id === viewId) || null, [rows, viewId]);
+
   /* files (admin only) */
   const [files, setFiles] = useState<RefFile[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -99,8 +104,9 @@ export default function ReferralPage() {
       setAuthError(false);
       setPageError(null);
       try {
-        const data = isAdmin ? await adminListReferrals() : await fetchMyReferrals();
+        const response = isAdmin ? await adminListReferrals() : await fetchMyReferrals();
         if (cancelled) return;
+        const data = response?.items || response;
         setRows(Array.isArray(data) ? data : []);
       } catch (e: any) {
         if (cancelled) return;
@@ -118,8 +124,19 @@ export default function ReferralPage() {
   }, [isAdmin]);
 
   /* ------------------ actions ------------------ */
+  function openView(r: Referral) {
+    setViewId(r.id);
+    setViewOpen(true);
+  }
+
   function openEdit(r: Referral) {
     setSelectedId(r.id);
+
+    // Parse JSONB fields
+    const locations = Array.isArray(r.locations) ? r.locations : [];
+    const opportunity_types = Array.isArray(r.opportunity_types) ? r.opportunity_types : [];
+    const environment = r.environment || {};
+
     setEf({
       company: r.company || "",
       status: r.status || "New",
@@ -127,12 +144,14 @@ export default function ReferralPage() {
       contact_email: r.contact_email || "",
       contact_phone: r.contact_phone || "",
       notes: r.notes || "",
-      locationsCsv: "",
-      env_users: "",
-      env_phone_provider: "",
-      env_isp: "",
-      env_bandwidth: "",
-      env_it_model: "",
+      reason: r.reason || "",
+      opportunity_types: opportunity_types,
+      locationsCsv: locations.join(", "),
+      env_users: environment.users || "",
+      env_phone_provider: environment.phone_provider || "",
+      env_isp: environment.isp || "",
+      env_bandwidth: environment.bandwidth || "",
+      env_it_model: environment.it_model || "",
     });
     if (isAdmin) {
       (async () => {
@@ -295,9 +314,9 @@ export default function ReferralPage() {
                         <button className="btn ghost" onClick={() => openEdit(r)}>
                           Edit
                         </button>
-                        <a className="btn ghost" href={`/referral`}>
+                        <button className="btn ghost" onClick={() => openView(r)}>
                           View
-                        </a>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -333,6 +352,178 @@ export default function ReferralPage() {
           </div>
         </div>
       </div>
+
+      {/* view modal */}
+      {viewOpen && viewRef && (
+        <div className="modal-backdrop" onClick={() => setViewOpen(false)}>
+          <div className="modal max-w-4xl" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <div>Referral {viewRef.ref_no}</div>
+              <div className="flex gap-2">
+                <button
+                  className="btn ghost"
+                  onClick={() => {
+                    const printContent = document.getElementById("view-content");
+                    if (!printContent) return;
+                    const win = window.open("", "", "width=800,height=600");
+                    if (!win) return;
+                    win.document.write(`
+                      <html>
+                        <head>
+                          <title>Referral ${viewRef.ref_no}</title>
+                          <style>
+                            body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
+                            .section { margin-bottom: 24px; }
+                            .section-title { font-weight: 600; font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }
+                            .field { margin-bottom: 12px; }
+                            .field-label { font-weight: 500; color: #6b7280; font-size: 12px; margin-bottom: 4px; }
+                            .field-value { color: #111827; font-size: 14px; }
+                            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                            .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+                            .badge-new { background: #dbeafe; color: #1e40af; }
+                            .badge-contacted { background: #e0e7ff; color: #3730a3; }
+                            .badge-qualified { background: #ddd6fe; color: #5b21b6; }
+                            .badge-won { background: #d1fae5; color: #065f46; }
+                            .badge-lost { background: #fee2e2; color: #991b1b; }
+                            .badge-default { background: #f3f4f6; color: #374151; }
+                          </style>
+                        </head>
+                        <body>${printContent.innerHTML}</body>
+                      </html>
+                    `);
+                    win.document.close();
+                    win.print();
+                  }}
+                >
+                  Download/Print
+                </button>
+                <button className="btn ghost" onClick={() => setViewOpen(false)}>
+                  Close
+                </button>
+              </div>
+            </header>
+            <section id="view-content" className="space-y-6 bg-white p-6 rounded-lg">
+              {/* Header */}
+              <div className="border-b-2 border-gray-300 pb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Referral {viewRef.ref_no}</h2>
+                <div className="text-sm text-gray-500 mt-1">
+                  Created {viewRef.created_at ? new Date(viewRef.created_at).toLocaleString() : "-"}
+                </div>
+              </div>
+
+              {/* Basic Information */}
+              <div>
+                <div className="font-semibold text-lg mb-3 border-b pb-2">Basic Information</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Company</div>
+                    <div className="text-sm text-gray-900">{viewRef.company || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Status</div>
+                    <div className="text-sm">
+                      <Badge status={viewRef.status || "New"} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <div className="font-semibold text-lg mb-3 border-b pb-2">Contact Information</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Contact Name</div>
+                    <div className="text-sm text-gray-900">{viewRef.contact_name || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Contact Email</div>
+                    <div className="text-sm text-gray-900">{viewRef.contact_email || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Contact Phone</div>
+                    <div className="text-sm text-gray-900">{viewRef.contact_phone || "-"}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Opportunity Details */}
+              <div>
+                <div className="font-semibold text-lg mb-3 border-b pb-2">Opportunity Details</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Opportunity Types</div>
+                    <div className="text-sm text-gray-900">
+                      {Array.isArray(viewRef.opportunity_types) && viewRef.opportunity_types.length > 0
+                        ? viewRef.opportunity_types.join(", ")
+                        : "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-1">Locations</div>
+                    <div className="text-sm text-gray-900">
+                      {Array.isArray(viewRef.locations) && viewRef.locations.length > 0
+                        ? viewRef.locations.join(", ")
+                        : "-"}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className="text-xs font-medium text-gray-600 mb-1">Reason</div>
+                    <div className="text-sm text-gray-900">{viewRef.reason || "-"}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Environment Details */}
+              {viewRef.environment && Object.keys(viewRef.environment).length > 0 && (
+                <div>
+                  <div className="font-semibold text-lg mb-3 border-b pb-2">Environment Details</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {viewRef.environment.users && (
+                      <div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">Users</div>
+                        <div className="text-sm text-gray-900">{viewRef.environment.users}</div>
+                      </div>
+                    )}
+                    {viewRef.environment.phone_provider && (
+                      <div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">Phone Provider</div>
+                        <div className="text-sm text-gray-900">{viewRef.environment.phone_provider}</div>
+                      </div>
+                    )}
+                    {viewRef.environment.internet_provider && (
+                      <div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">Internet Provider</div>
+                        <div className="text-sm text-gray-900">{viewRef.environment.internet_provider}</div>
+                      </div>
+                    )}
+                    {viewRef.environment.internet_bandwidth_mbps && (
+                      <div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">Bandwidth</div>
+                        <div className="text-sm text-gray-900">{viewRef.environment.internet_bandwidth_mbps} Mbps</div>
+                      </div>
+                    )}
+                    {viewRef.environment.it_model && (
+                      <div className="md:col-span-2">
+                        <div className="text-xs font-medium text-gray-600 mb-1">IT Support Model</div>
+                        <div className="text-sm text-gray-900">{viewRef.environment.it_model}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {viewRef.notes && (
+                <div>
+                  <div className="font-semibold text-lg mb-3 border-b pb-2">Notes</div>
+                  <div className="text-sm text-gray-900 whitespace-pre-wrap">{viewRef.notes}</div>
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+      )}
 
       {/* edit modal */}
       {editOpen && selRef && (

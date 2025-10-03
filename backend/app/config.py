@@ -1,16 +1,26 @@
-
-from typing import Optional
+# backend/app/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
-import os
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql+psycopg://azor:azorpass@localhost:5434/azor")
-    JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-change-me")
+    # auth
+    JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    MS_GRAPH_CLIENT_ID: Optional[str] = os.getenv("MS_GRAPH_CLIENT_ID")
-    MS_GRAPH_TENANT_ID: Optional[str] = os.getenv("MS_GRAPH_TENANT_ID")
-    BOT_CACHE_PATH: str = os.getenv("BOT_CACHE_PATH", r"C:\azor\secrets\graph_token_cache.json")
+    AUTH_COOKIE_NAME: str = "azor_access"
+
+    # MFA settings
+    REQUIRE_MFA: bool = True
+    MFA_BOOTSTRAP_ALLOW: bool = False
+
+    # make this optional so its presence never crashes import
+    FRONTEND_ORIGIN: str | None = None
+
+    # Microsoft Graph API for sending emails
+    MS_GRAPH_CLIENT_ID: str | None = None
+    MS_GRAPH_TENANT_ID: str | None = None
+    MS_GRAPH_SENDER: str = "noreply@covenanttechnology.net"
+    BOT_CACHE_PATH: str = "graph_token_cache.json"
+
+    # accept unknown env keys so extras never break app startup
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

@@ -1,46 +1,38 @@
-# backend/app/routers/me.py
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from jose import jwt, JWTError
-from app.database import SessionLocal
-from app.config import settings
-from app import models, schemas
+from sqlalchemy import text
+
+from app.dependencies import get_db, require_auth
+from app import models
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@router.get("/me")
+def read_me(auth=Depends(require_auth), db: Session = Depends(get_db)):
+    sub, role = auth  # require_auth returns (user_id, role)
 
-def _token(h: str | None):
-    if not h:
-        raise HTTPException(status_code=401, detail="Missing Authorization")
-    p = h.split()
-    if len(p) != 2 or p[0].lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Invalid Authorization")
-    return p[1]
+    # Get user with MFA status
+    row = db.execute(
+        text("""
+            SELECT u.id, u.email, u.first_name, u.last_name, u.role, u.created_at,
+                   COALESCE(mfa.enabled, FALSE) as mfa_enabled
+            FROM users u
+            LEFT JOIN mfa_credential mfa ON u.id = mfa.user_id
+            WHERE u.id = :user_id
+            LIMIT 1
+        """),
+        {"user_id": sub}
+    ).mappings().first()
 
-# Normalize algorithm(s): allow single string "HS256" or comma-separated "HS256,HS512"
-def _alg_list():
-    alg = getattr(settings, "JWT_ALGORITHM", "HS256")
-    if isinstance(alg, (list, tuple)):
-        return [str(a).strip() for a in alg if str(a).strip()]
-    return [a.strip() for a in str(alg).split(",") if a.strip()]
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
 
-@router.get("/me", response_model=schemas.UserOut)
-def me(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    t = _token(authorization)
-    try:
-        payload = jwt.decode(t, settings.JWT_SECRET, algorithms=_alg_list())
-        sub = payload.get("sub")
-        if not sub:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    u = db.query(models.User).filter(models.User.id == sub).first()
-    if not u:
-        raise HTTPException(status_code=404, detail="Not found")
-    return u
+    return {
+        "id": str(row["id"]),
+        "email": row["email"],
+        "first_name": row["first_name"] or "",
+        "last_name": row["last_name"] or "",
+        "role": row["role"],
+        "created_at": row["created_at"],
+        "mfa_enabled": bool(row["mfa_enabled"]),
+    }

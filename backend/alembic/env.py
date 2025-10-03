@@ -1,29 +1,39 @@
+import os
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool
 from alembic import context
-from sqlalchemy import create_engine, pool
-import os, sys
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[1]  # backend/
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
+config = context.config
 
-from app.database import Base
-from app import models  # ensure models are imported
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+# Read DATABASE_URL from env and safely inject (escape % for ConfigParser)
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    safe = db_url.replace("%", "%%")
+    config.set_main_option("sqlalchemy.url", safe)
 
-def _db_url():
-    return os.getenv("DATABASE_URL", "postgresql+psycopg://azor:azorpass@localhost:5434/azor")
+target_metadata = None
 
-def run_migrations_offline():
-    context.configure(url=_db_url(), target_metadata=target_metadata, literal_binds=True, compare_type=True)
+def run_migrations_offline() -> None:
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        literal_binds=True,
+        compare_type=True,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
-def run_migrations_online():
-    engine = create_engine(_db_url(), poolclass=pool.NullPool, pool_pre_ping=True)
-    with engine.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+def run_migrations_online() -> None:
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    with connectable.connect() as connection:
+        context.configure(connection=connection, compare_type=True)
         with context.begin_transaction():
             context.run_migrations()
 

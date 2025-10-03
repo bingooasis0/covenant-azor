@@ -1,55 +1,229 @@
-
-from fastapi import APIRouter, Depends, HTTPException, Header
+from typing import Optional, List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import datetime
-from app import models, schemas
-from app.database import SessionLocal
-from app.auth_helper import bearer_sub_and_role
-from app.graph_mail import send_mail
+import json
 
-router = APIRouter()
+from app.dependencies import get_db, require_auth
 
-def get_db():
-    db = SessionLocal()
-    try: yield db
-    finally: db.close()
+router = APIRouter(prefix="/referrals", tags=["referrals"])
 
-def _ensure_seq(db: Session):
-    db.execute(text("CREATE SEQUENCE IF NOT EXISTS referral_seq;"))
-    db.commit()
 
-def _next_ref_no(db: Session):
-    _ensure_seq(db)
-    seq_val = db.execute(text("SELECT nextval('referral_seq')")).scalar_one()
-    year = datetime.utcnow().year
-    return f"AZR-{year}-{int(seq_val):04d}"
+class ReferralCreate(BaseModel):
+    company: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    notes: Optional[str] = None
+    opportunity_types: List[str] = Field(default_factory=list)
+    locations: List[str] = Field(default_factory=list)
+    environment: Dict[str, Any] = Field(default_factory=dict)
+    reason: Optional[str] = None
 
-@router.post("/", response_model=schemas.ReferralOut)
-def create_referral(ref: schemas.ReferralCreate, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    sub, role = bearer_sub_and_role(authorization)
-    if not sub: raise HTTPException(status_code=401, detail="Unauthorized")
-    r = models.Referral(
-        company=ref.company, contact_name=ref.contact_name, contact_email=ref.contact_email,
-        contact_phone=ref.contact_phone, notes=ref.notes, status="New", agent_id=sub
+
+class ReferralUpdate(BaseModel):
+    company: Optional[str] = None
+    status: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    notes: Optional[str] = None
+    opportunity_types: Optional[List[str]] = None
+    locations: Optional[List[str]] = None
+    environment: Optional[Dict[str, Any]] = None
+    reason: Optional[str] = None
+
+
+@router.get("/my")
+def list_my_referrals(
+    auth=Depends(require_auth),
+    db: Session = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Returns **array only** of current user's referrals.
+    """
+    user_id, _role = auth
+    rows = db.execute(
+        text(
+            """
+            SELECT id, ref_no, company, status, created_at,
+                   contact_name, contact_email, contact_phone,
+                   notes, agent_id, opportunity_types, locations, environment, reason
+              FROM referrals
+             WHERE agent_id = :uid
+             ORDER BY created_at DESC
+             LIMIT :lim OFFSET :off
+            """
+        ),
+        {"uid": user_id, "lim": limit, "off": offset},
+    ).mappings().all()
+
+    # Return array only for FE simplicity
+    return [dict(r) for r in rows]
+
+
+@router.post("", status_code=200)
+def create_referral(
+    payload: ReferralCreate, auth=Depends(require_auth), db: Session = Depends(get_db)
+):
+    """
+    Insert referral using **safe JSON casting**. Avoids the mixed param-style bug that produced
+    `:opportunity_types::jsonb` and 500s.
+    """
+    user_id, _role = auth
+
+    # Generate next ref_no with retry logic for race conditions
+    from sqlalchemy.exc import IntegrityError
+    import random
+    import time
+
+    row = None
+    max_attempts = 10
+
+    for attempt in range(max_attempts):
+        # Get the latest ref_no
+        max_ref = db.execute(
+            text("SELECT ref_no FROM referrals WHERE ref_no LIKE 'AZR-2025-%' ORDER BY ref_no DESC LIMIT 1")
+        ).scalar()
+
+        if max_ref:
+            try:
+                num = int(max_ref.split('-')[-1]) + 1
+            except:
+                num = 1
+        else:
+            num = 1
+
+        ref_no = f"AZR-2025-{num:04d}"
+
+        try:
+            # Try to insert with this ref_no
+            row = db.execute(
+                text(
+                    """
+                    INSERT INTO referrals (
+                        ref_no, company, status, contact_name, contact_email, contact_phone, notes,
+                        agent_id, opportunity_types, locations, environment, reason
+                    ) VALUES (
+                        :ref_no, :company, 'new', :contact_name, :contact_email, :contact_phone, :notes,
+                        :agent_id, CAST(:opportunity_types AS JSONB), CAST(:locations AS JSONB), CAST(:environment AS JSONB), :reason
+                    )
+                    RETURNING id, ref_no, company, status, created_at, contact_name, contact_email,
+                              contact_phone, notes, agent_id, opportunity_types, locations, environment, reason
+                    """
+                ),
+                {
+                    "ref_no": ref_no,
+                    "company": payload.company,
+                    "contact_name": payload.contact_name,
+                    "contact_email": payload.contact_email,
+                    "contact_phone": payload.contact_phone,
+                    "notes": payload.notes,
+                    "agent_id": user_id,
+                    "opportunity_types": json.dumps(payload.opportunity_types or []),
+                    "locations": json.dumps(payload.locations or []),
+                    "environment": json.dumps(payload.environment or {}),
+                    "reason": payload.reason,
+                },
+            ).mappings().first()
+            # Success - break out of retry loop
+            break
+        except IntegrityError as e:
+            # Duplicate ref_no - rollback and retry
+            db.rollback()
+            if attempt < max_attempts - 1:
+                time.sleep(random.uniform(0.01, 0.05))
+                continue
+            else:
+                # Last attempt failed, re-raise
+                raise
+
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to create referral after multiple attempts")
+
+    db.execute(
+        text(
+            """INSERT INTO audit_event (actor_user_id, action, entity_type, entity_id)
+               VALUES (:uid, :action, :entity_type, :entity_id)"""
+        ),
+        {
+            "uid": user_id,
+            "action": "referral.created",
+            "entity_type": "referral",
+            "entity_id": str(row['id']),
+        },
     )
-    db.add(r); db.commit(); db.refresh(r)
-    r.ref_no = _next_ref_no(db); db.add(r); db.commit(); db.refresh(r)
-    # notify Covenant
-    send_mail(["A-ZReferrals@covenanttechnology.net"], f"New referral {r.ref_no}", f"{ref.company} from agent {sub}")
-    return r
+    db.commit()
+    return dict(row)
 
-@router.get("/my", response_model=list[schemas.ReferralOut])
-def list_my(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    sub, role = bearer_sub_and_role(authorization)
-    if not sub: raise HTTPException(status_code=401, detail="Unauthorized")
-    return db.query(models.Referral).filter(models.Referral.agent_id==sub).order_by(models.Referral.created_at.desc()).limit(50).all()
 
-@router.post("/{referral_id}/agent-note")
-def agent_note(referral_id: str, note: str, authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
-    sub, role = bearer_sub_and_role(authorization)
-    if not sub: raise HTTPException(status_code=401, detail="Unauthorized")
-    r = db.query(models.Referral).filter(models.Referral.id==referral_id, models.Referral.agent_id==sub).first()
-    if not r: raise HTTPException(status_code=404, detail="Referral not found")
-    send_mail(["A-ZReferrals@covenanttechnology.net"], f"Azor Note • {r.ref_no} • {r.company}", note)
-    return {"ok": True}
+@router.patch("/{referral_id}")
+def update_referral(
+    referral_id: str,
+    payload: ReferralUpdate,
+    auth=Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    user_id, role = auth
+
+    owner = db.execute(
+        text("SELECT agent_id FROM referrals WHERE id = :id"), {"id": referral_id}
+    ).scalar()
+    if not owner:
+        raise HTTPException(status_code=404, detail="Referral not found")
+    if role != "COVENANT" and owner != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    sets, params = [], {"id": referral_id}
+
+    def add(col: str, val, jsonb: bool = False):
+        if val is not None:
+            if jsonb:
+                # Use CAST(:param AS JSONB) to avoid the colon+cast parsing bug
+                sets.append(f"{col} = CAST(:{col} AS JSONB)")
+                params[col] = json.dumps(val)
+            else:
+                sets.append(f"{col} = :{col}")
+                params[col] = val
+
+    add("company", payload.company)
+    add("status", payload.status)
+    add("contact_name", payload.contact_name)
+    add("contact_email", payload.contact_email)
+    add("contact_phone", payload.contact_phone)
+    add("notes", payload.notes)
+    add("opportunity_types", payload.opportunity_types, jsonb=True)
+    add("locations", payload.locations, jsonb=True)
+    add("environment", payload.environment, jsonb=True)
+    add("reason", payload.reason)
+
+    if not sets:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    row = db.execute(
+        text(
+            f"""
+            UPDATE referrals SET {", ".join(sets)}
+             WHERE id = :id
+         RETURNING id, ref_no, company, status, created_at, contact_name, contact_email,
+                   contact_phone, notes, agent_id, opportunity_types, locations, environment, reason
+        """
+        ),
+        params,
+    ).mappings().first()
+
+    db.execute(
+        text(
+            """INSERT INTO audit_event (actor_user_id, action, entity_type, entity_id)
+               VALUES (:uid, 'referral.updated', 'referral', :entity_id)"""
+        ),
+        {
+            "uid": user_id,
+            "entity_id": referral_id,
+        },
+    )
+    db.commit()
+    return dict(row)

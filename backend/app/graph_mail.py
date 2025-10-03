@@ -1,6 +1,7 @@
 
-from typing import List
+from typing import List, Optional, Dict
 import msal, requests
+import base64
 from pathlib import Path
 from app.config import settings
 
@@ -31,9 +32,22 @@ def _token():
     path.write_text(cache.serialize(), encoding="utf-8")
     return res["access_token"]
 
-def send_mail(to: List[str], subject: str, body_text: str):
+def send_mail(to: List[str], subject: str, body_text: str, attachments: Optional[List[Dict]] = None):
+    """
+    Send email via Microsoft Graph API.
+
+    Args:
+        to: List of recipient email addresses
+        subject: Email subject
+        body_text: Email body (plain text)
+        attachments: Optional list of attachments, each dict with:
+            - name: filename
+            - content_type: MIME type
+            - content: bytes content
+    """
     tok = _token()
     h = {"Authorization": f"Bearer {tok}", "Content-Type": "application/json"}
+
     payload = {
         "message": {
             "subject": subject,
@@ -42,6 +56,24 @@ def send_mail(to: List[str], subject: str, body_text: str):
         },
         "saveToSentItems": "true",
     }
+
+    # Add attachments if provided
+    if attachments:
+        payload["message"]["attachments"] = []
+        for att in attachments:
+            # Encode file content as base64
+            content_bytes = att.get("content", b"")
+            if isinstance(content_bytes, memoryview):
+                content_bytes = bytes(content_bytes)
+            content_b64 = base64.b64encode(content_bytes).decode('utf-8')
+
+            payload["message"]["attachments"].append({
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": att.get("name", "attachment"),
+                "contentType": att.get("content_type", "application/octet-stream"),
+                "contentBytes": content_b64
+            })
+
     r = requests.post("https://graph.microsoft.com/v1.0/me/sendMail", headers=h, json=payload, timeout=20)
     if r.status_code not in (200, 202):
         raise RuntimeError(f"Graph sendMail failed: {r.status_code} {r.text}")

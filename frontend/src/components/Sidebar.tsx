@@ -25,6 +25,7 @@ export default function Sidebar(){
     <img src="/images/azor-logo.png" alt="Azor" className="nav-logo" style={{height:45}} />
   </div>
 </div>
+<div className="mt-4 border-t pt-3 text-xs text-[var(--muted)] flex items-center justify-between"></div>
       <nav className="nav mt-4 flex-1">
         <Item href="/dashboard" label="Dashboard" active={p.startsWith("/dashboard")} Icon={IconHome} />
         <Item href="/referral"  label="Referral"  active={p.startsWith("/referral")} Icon={IconClipboardList} />

@@ -1,15 +1,16 @@
 // frontend/src/app/dashboard/page.tsx
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import Badge from "../../components/ui/Badge";
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import Badge from '@/components/ui/Badge';
 import {
-  fetchMyReferrals,
-  fetchActivity,
-  getAnnouncements,
+  type Me,
+  fetchMe,
   adminListReferrals,
-} from "../../lib/api";
+  fetchMyReferrals,
+  getAnnouncements,
+} from '@/lib/api';
 
 type Ref = {
   id: string;
@@ -27,68 +28,91 @@ const Card = ({ children }: { children: React.ReactNode }) => (
   <div className="card">{children}</div>
 );
 
-export default function Dashboard() {
-  const [role, setRole] = useState<"AZOR" | "COVENANT">("AZOR");
-  const [referrals, setReferrals] = useState<Ref[]>([]);
-  const [activity, setActivity] = useState<any[]>([]);
+export default function DashboardPage() {
+  // auth gate
+  const [ready, setReady] = useState(false);
+  const [me, setMe] = useState<Me | null>(null);
+
+  // data
+  const [refs, setRefs] = useState<Ref[]>([]);
   const [ann, setAnn] = useState<string[]>([]);
-  const [selectedId, setSelectedId] = useState<string>("");
 
-  // Read role once on mount
-  useEffect(() => {
-    try {
-      const r = window.localStorage.getItem("role");
-      if (r === "COVENANT" || r === "AZOR") setRole(r);
-    } catch {}
-  }, []);
+  const isAdmin = me?.role === 'COVENANT';
 
-  // Load data based on role, but never force redirect on 401
+  // ---------- AUTH GATE ----------
   useEffect(() => {
+    let alive = true;
     (async () => {
       try {
-        if (role === "COVENANT") {
-          setReferrals(await adminListReferrals()); // 404/401-safe
-        } else {
-          setReferrals(await fetchMyReferrals()); // 401-safe
-        }
+        const m = await fetchMe();
+        if (!alive) return;
+        setMe(m);
       } catch {
-        setReferrals([]);
-      }
-      try {
-        setActivity(await fetchActivity(10));
-      } catch {
-        setActivity([]);
-      }
-      try {
-        const a = await getAnnouncements();
-        setAnn(a?.items || []);
-      } catch {
-        try {
-          setAnn(JSON.parse(localStorage.getItem("announcements") || "[]"));
-        } catch {}
+        if (!alive) return;
+        setMe(null);
+      } finally {
+        if (alive) setReady(true);
       }
     })();
-  }, [role]);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // ---------- LOAD DATA ----------
+  useEffect(() => {
+    if (!ready || !me) return;
+    let alive = true;
+    (async () => {
+      try {
+        const doc: any = await getAnnouncements();
+        const items = Array.isArray(doc?.items) ? doc.items : [];
+        if (alive) setAnn(items);
+      } catch {
+        if (alive) setAnn([]);
+      }
+
+      try {
+        const response = isAdmin ? await adminListReferrals() : await fetchMyReferrals();
+        const data = response?.items || response;
+        if (alive) setRefs(Array.isArray(data) ? data : []);
+      } catch {
+        if (alive) setRefs([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [ready, me, isAdmin]);
 
   const counts = useMemo(() => {
     const m: Record<string, number> = {};
-    referrals.forEach((r) => {
+    refs.forEach((r) => {
       m[r.status] = (m[r.status] || 0) + 1;
     });
     return m;
-  }, [referrals]);
+  }, [refs]);
 
-  const recentRefs = useMemo(() => referrals.slice(0, 6), [referrals]);
-  const sel = useMemo(
-    () => referrals.find((r) => r.id === selectedId) || null,
-    [selectedId, referrals]
-  );
+  if (!ready) return null;
+  if (!me) {
+    return (
+      <main className="p-6">
+        <h1 className="text-xl font-semibold">Unauthorized</h1>
+        <p className="text-sm opacity-70">Please sign in to view the dashboard.</p>
+        <div className="mt-4">
+          <Link className="btn ghost" href="/" prefetch={false}>
+            Sign In
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="wrap space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <Link className="btn" href="/create-referral">
+        <h1 className="text-xl font-semibold">{isAdmin ? 'Admin Dashboard' : 'My Dashboard'}</h1>
+        <Link href="/create-referral" className="btn">
           Submit Referral
         </Link>
       </div>
@@ -107,166 +131,22 @@ export default function Dashboard() {
         )}
       </Card>
 
-      {/* All Referrals Overview with selectable chips */}
-      <Card>
-        <h2 className="text-lg font-medium mb-2">All Referrals Overview</h2>
-        <div className="flex flex-wrap gap-2">
-          <button
-            className={`badge ${selectedId === "" ? "active" : ""}`}
-            onClick={() => setSelectedId("")}
-          >
-            All
-          </button>
-          {recentRefs.map((r) => (
-            <button
-              key={r.id}
-              className={`badge ${selectedId === r.id ? "active" : ""}`}
-              onClick={() => setSelectedId(r.id)}
-            >
-              {r.ref_no}
-            </button>
-          ))}
-        </div>
-
-        {/* Details for selected referral */}
-        {sel && (
-          <div className="mt-4 border rounded panel-2 p-3">
-            <div
-              className="grid"
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-            >
-              <div>
-                <div className="label">Ref No</div>
-                <div style={{ fontWeight: 600 }}>{sel.ref_no}</div>
-              </div>
-              <div>
-                <div className="label">Status</div>
-                <Badge status={sel.status} />
-              </div>
-              <div>
-                <div className="label">Company</div>
-                <div style={{ fontWeight: 600 }}>{sel.company}</div>
-              </div>
-              <div>
-                <div className="label">Created</div>
-                <div>
-                  {sel.created_at ? new Date(sel.created_at).toLocaleString() : ""}
-                </div>
-              </div>
-              <div>
-                <div className="label">Contact name</div>
-                <div>{sel.contact_name || "-"}</div>
-              </div>
-              <div>
-                <div className="label">Contact email</div>
-                <div>{sel.contact_email || "-"}</div>
-              </div>
-              <div>
-                <div className="label">Contact phone</div>
-                <div>{sel.contact_phone || "-"}</div>
-              </div>
-              <div className="col-span-2">
-                <div className="label">Notes</div>
-                <div>{sel.notes || "-"}</div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* My/All Referrals table */}
-      <Card>
-        <h2 className="text-lg font-medium mb-2">
-          {role === "COVENANT" ? "All Referrals" : "My Referrals"}
-        </h2>
-        <div className="overflow-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Ref No</th>
-                <th>Company</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th style={{ width: 80 }}>View</th>
-              </tr>
-            </thead>
-            <tbody>
-              {referrals.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.ref_no}</td>
-                  <td>{r.company}</td>
-                  <td>
-                    <Badge status={r.status} />
-                  </td>
-                  <td>{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</td>
-                  <td>
-                    <Link className="btn ghost" href={`/referral?id=${r.id}`}>
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {referrals.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "16px" }}>
-                    No referrals.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card>
-        <h2 className="text-lg font-medium mb-2">Recent Activity</h2>
-        {activity.length === 0 ? (
-          <div className="text-sm text-gray-600">No activity yet.</div>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Entity</th>
-                <th>Entity ID</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activity.map((a: any) => (
-                <tr key={`${a.entity_type}:${a.entity_id}:${a.created_at}`}>
-                  <td>{a.action}</td>
-                  <td>{a.entity_type}</td>
-                  <td>{a.entity_id}</td>
-                  <td>{new Date(a.created_at).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
-
       {/* Status Summary */}
       <Card>
         <h2 className="text-lg font-medium mb-2">Status Summary</h2>
         <div
           className="grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0,1fr))",
-            gap: 12,
-          }}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}
         >
           {[
-            "New",
-            "Contacted",
-            "Qualified",
-            "Proposal Sent",
-            "Won",
-            "Lost",
-            "On Hold",
-            "Commission Paid",
+            'New',
+            'Contacted',
+            'Qualified',
+            'Proposal Sent',
+            'Won',
+            'Lost',
+            'On Hold',
+            'Commission Paid',
           ].map((s) => (
             <div key={s} className="card" style={{ padding: 12 }}>
               <div className="label">{s}</div>
@@ -275,6 +155,48 @@ export default function Dashboard() {
           ))}
         </div>
       </Card>
+
+      {/* All Referrals (Admin only) */}
+      {isAdmin && (
+        <Card>
+          <h2 className="text-lg font-medium mb-2">All Referrals</h2>
+          <div className="overflow-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Ref No</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th style={{ width: 80 }}>View</th>
+                </tr>
+              </thead>
+              <tbody>
+                {refs.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.ref_no}</td>
+                    <td>{r.company}</td>
+                    <td><Badge status={r.status} /></td>
+                    <td>{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</td>
+                    <td>
+                      <Link className="btn ghost" href={`/referral`} prefetch={false}>
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+                {refs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: 12 }}>
+                      No referrals.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

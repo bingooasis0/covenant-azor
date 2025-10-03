@@ -1,7 +1,8 @@
-/* frontend/src/app/admin/page.tsx — PART 2 of 2 (FULL FILE: replace the file with this complete version) */
+/* frontend/src/app/admin/page.tsx */
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Badge from "@/components/ui/Badge";
 import {
   // Users
   adminListUsers,
@@ -53,6 +54,17 @@ export default function AdminPage() {
   /* ------------------ global banners ------------------ */
   const [authError, setAuthError] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
+  const showNotification = (type: "success" | "error", message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void) => {
+    setConfirmDialog({ message, onConfirm });
+  };
 
   /* ------------------ users ------------------ */
   const [users, setUsers] = useState<User[]>([]);
@@ -76,7 +88,9 @@ export default function AdminPage() {
 
   /* ------------------ referrals (and files) ------------------ */
   const [refs, setRefs] = useState<Referral[]>([]);
+  const [viewRef, setViewRef] = useState<Referral | null>(null);
   const [editRef, setEditRef] = useState<Referral | null>(null);
+  const [deleteRef, setDeleteRef] = useState<Referral | null>(null);
   const [ef, setEf] = useState<any>({});
   const [rfFiles, setRfFiles] = useState<RefFile[]>([]);
   const [rfNew, setRfNew] = useState<File[]>([]);
@@ -103,7 +117,8 @@ export default function AdminPage() {
   /* ------------------ loaders ------------------ */
   async function loadUsers() {
     try {
-      const data = await adminListUsers();
+      const response = await adminListUsers();
+      const data = response?.items || response;
       setUsers(Array.isArray(data) ? data : []);
     } catch (e: any) {
       if (isUnauthorized(e)) setAuthError(true);
@@ -112,7 +127,8 @@ export default function AdminPage() {
   }
   async function loadReferrals() {
     try {
-      const data = await adminListReferrals();
+      const response = await adminListReferrals();
+      const data = response?.items || response;
       setRefs(Array.isArray(data) ? data : []);
     } catch (e: any) {
       if (isUnauthorized(e)) setAuthError(true);
@@ -131,7 +147,8 @@ export default function AdminPage() {
   async function loadAudit(off: number) {
     setLoadingAudit(true);
     try {
-      const rows = await fetchAuditPage(limit, off);
+      const response = await fetchAuditPage(off, limit);
+      const rows = response?.items || [];
       setAudit(Array.isArray(rows) ? rows : []);
       setOffset(off);
     } catch (e: any) {
@@ -181,14 +198,19 @@ export default function AdminPage() {
     setModalError(null);
     setPwOpen(true);
   }
-  async function confirmDeleteUser(id: string) {
-    if (!confirm("Are you sure you want to remove this user?")) return;
-    try {
-      await adminDeleteUser(id);
-      await loadUsers();
-    } catch (e: any) {
-      alert(e?.message || "Remove failed");
-    }
+  async function confirmDeleteUser(user: User) {
+    showConfirm(
+      `Are you sure you want to remove ${user.email}?`,
+      async () => {
+        try {
+          await adminDeleteUser(user.id);
+          await loadUsers();
+          showNotification("success", "User removed successfully");
+        } catch (e: any) {
+          showNotification("error", e?.message || "Remove failed");
+        }
+      }
+    );
   }
   async function saveUser() {
     if (!editUser) return;
@@ -211,7 +233,7 @@ export default function AdminPage() {
   async function confirmResetPassword() {
     if (!editUser) return;
     if ((pwTemp || "").length < 15) {
-      alert("Password must be at least 15 characters.");
+      showNotification("error", "Password must be at least 15 characters.");
       return;
     }
     setBusy(true);
@@ -253,6 +275,9 @@ export default function AdminPage() {
   }
 
   /* ------------------ referrals actions ------------------ */
+  function openViewRef(r: Referral) {
+    setViewRef(r);
+  }
   function openEditRef(r: Referral) {
     setEditRef(r);
     setEf({
@@ -262,12 +287,14 @@ export default function AdminPage() {
       contact_email: r.contact_email || "",
       contact_phone: r.contact_phone || "",
       notes: r.notes || "",
-      locationsCsv: "",
-      env_users: "",
-      env_phone_provider: "",
-      env_isp: "",
-      env_bandwidth: "",
-      env_it_model: "",
+      locationsCsv: (r.locations || []).join(", "),
+      opportunity_types: (r.opportunity_types || []).join(", "),
+      env_users: r.environment?.users || "",
+      env_phone_provider: r.environment?.phone_provider || "",
+      env_isp: r.environment?.internet_provider || "",
+      env_bandwidth: r.environment?.internet_bandwidth_mbps || "",
+      env_it_model: r.environment?.it_model || "",
+      reason: r.reason || "",
     });
     (async () => {
       try {
@@ -277,6 +304,9 @@ export default function AdminPage() {
         setRfFiles([]);
       }
     })();
+  }
+  function openDeleteRef(r: Referral) {
+    setDeleteRef(r);
   }
   async function saveRef() {
     if (!editRef) return;
@@ -290,9 +320,16 @@ export default function AdminPage() {
         contact_email: ef.contact_email,
         contact_phone: ef.contact_phone,
         notes: ef.notes || null,
+        reason: ef.reason || null,
       };
       if (ef.locationsCsv?.trim()) {
         body.locations = ef.locationsCsv
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+      }
+      if (ef.opportunity_types?.trim()) {
+        body.opportunity_types = ef.opportunity_types
           .split(",")
           .map((s: string) => s.trim())
           .filter(Boolean);
@@ -320,13 +357,18 @@ export default function AdminPage() {
       setBusy(false);
     }
   }
-  async function confirmDeleteReferral(id: string) {
-    if (!confirm("Are you sure you want to delete this referral?")) return;
+  async function confirmDeleteReferral() {
+    if (!deleteRef) return;
+    setBusy(true);
     try {
-      await adminDeleteReferral(id);
-      setRefs((prev) => prev.filter((r) => r.id !== id));
+      await adminDeleteReferral(deleteRef.id);
+      setRefs((prev) => prev.filter((r) => r.id !== deleteRef.id));
+      setDeleteRef(null);
+      showNotification("success", "Referral deleted successfully");
     } catch (e: any) {
-      alert(e?.message || "Delete failed");
+      showNotification("error", e?.message || "Delete failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -384,13 +426,14 @@ export default function AdminPage() {
                 <th className="px-3 py-2 text-left border-b">Email</th>
                 <th className="px-3 py-2 text-left border-b">Name</th>
                 <th className="px-3 py-2 text-left border-b">Role</th>
+                <th className="px-3 py-2 text-left border-b">Created</th>
                 <th className="px-3 py-2 text-right border-b w-0">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-3 text-center text-gray-500">
+                  <td colSpan={5} className="px-3 py-3 text-center text-gray-500">
                     No users
                   </td>
                 </tr>
@@ -402,18 +445,19 @@ export default function AdminPage() {
                       {u.first_name} {u.last_name}
                     </td>
                     <td className="px-3 py-2">{u.role}</td>
+                    <td className="px-3 py-2">{u.created_at ? new Date(u.created_at).toLocaleString() : "-"}</td>
                     <td className="px-3 py-2 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <button className="btn ghost" onClick={() => openEditUser(u)}>
+                      <div className="flex gap-2 justify-end whitespace-nowrap">
+                        <button className="btn ghost text-xs px-2 py-1" onClick={() => openEditUser(u)}>
                           Edit
                         </button>
-                        <button className="btn ghost" onClick={() => openPw(u)}>
+                        <button className="btn ghost text-xs px-2 py-1" onClick={() => openPw(u)}>
                           Reset Password
                         </button>
-                        <button className="btn ghost" onClick={() => adminResetUserMfa(u.id)}>
+                        <button className="btn ghost text-xs px-2 py-1" onClick={() => adminResetUserMfa(u.id)}>
                           Reset MFA
                         </button>
-                        <button className="btn ghost" onClick={() => confirmDeleteUser(u.id)}>
+                        <button className="btn ghost text-xs px-2 py-1" onClick={() => confirmDeleteUser(u)}>
                           Remove
                         </button>
                       </div>
@@ -452,17 +496,17 @@ export default function AdminPage() {
                   <tr key={r.id} className="border-b">
                     <td className="px-3 py-2">{r.ref_no}</td>
                     <td className="px-3 py-2">{r.company}</td>
-                    <td className="px-3 py-2">{r.status}</td>
+                    <td className="px-3 py-2"><Badge status={r.status} /></td>
                     <td className="px-3 py-2">{r.created_at ? new Date(r.created_at).toLocaleString() : "-"}</td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex gap-2 justify-end">
+                        <button className="btn ghost" onClick={() => openViewRef(r)}>
+                          View
+                        </button>
                         <button className="btn ghost" onClick={() => openEditRef(r)}>
                           Edit
                         </button>
-                        <a className="btn ghost" href={`/referral`}>
-                          View
-                        </a>
-                        <button className="btn ghost" onClick={() => confirmDeleteReferral(r.id)}>
+                        <button className="btn ghost" onClick={() => openDeleteRef(r)}>
                           Delete
                         </button>
                       </div>
@@ -793,6 +837,70 @@ export default function AdminPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Opportunity Types (CSV)</label>
+                  <input
+                    className="input w-full"
+                    value={ef.opportunity_types}
+                    onChange={(e) => setEf((p: any) => ({ ...p, opportunity_types: e.target.value }))}
+                    placeholder="Managed IT, Hosted Voice, ..."
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Environment</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs mb-1">Users</label>
+                      <input
+                        className="input w-full"
+                        type="number"
+                        value={ef.env_users}
+                        onChange={(e) => setEf((p: any) => ({ ...p, env_users: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Phone Provider</label>
+                      <input
+                        className="input w-full"
+                        value={ef.env_phone_provider}
+                        onChange={(e) => setEf((p: any) => ({ ...p, env_phone_provider: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Internet Provider</label>
+                      <input
+                        className="input w-full"
+                        value={ef.env_isp}
+                        onChange={(e) => setEf((p: any) => ({ ...p, env_isp: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Bandwidth (Mbps)</label>
+                      <input
+                        className="input w-full"
+                        type="number"
+                        value={ef.env_bandwidth}
+                        onChange={(e) => setEf((p: any) => ({ ...p, env_bandwidth: e.target.value }))}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs mb-1">IT Model</label>
+                      <input
+                        className="input w-full"
+                        value={ef.env_it_model}
+                        onChange={(e) => setEf((p: any) => ({ ...p, env_it_model: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Reason for Referral</label>
+                  <textarea
+                    className="input w-full min-h-[80px]"
+                    value={ef.reason}
+                    onChange={(e) => setEf((p: any) => ({ ...p, reason: e.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-1">Notes</label>
                   <textarea
                     className="input w-full min-h-[120px]"
@@ -816,11 +924,14 @@ export default function AdminPage() {
                         className="btn ghost"
                         onClick={() => {
                           if (!editRef) return;
-                          if (confirm("Remove this file?")) {
+                          showConfirm("Remove this file?", () => {
                             deleteReferralFile(editRef.id, f.file_id)
-                              .then(() => setRfFiles((prev) => prev.filter((x) => x.file_id !== f.file_id)))
-                              .catch((e) => alert(e?.message || "Remove failed"));
-                          }
+                              .then(() => {
+                                setRfFiles((prev) => prev.filter((x) => x.file_id !== f.file_id));
+                                showNotification("success", "File removed successfully");
+                              })
+                              .catch((e) => showNotification("error", e?.message || "Remove failed"));
+                          });
                         }}
                       >
                         Remove
@@ -848,6 +959,181 @@ export default function AdminPage() {
                 Save changes
               </button>
             </footer>
+          </div>
+        </div>
+      )}
+
+      {/* --------- View referral modal --------- */}
+      {viewRef && (
+        <div className="modal-backdrop" onClick={() => setViewRef(null)}>
+          <div className="modal max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <div>View {viewRef.ref_no}</div>
+              <button className="btn ghost" onClick={() => setViewRef(null)}>
+                Close
+              </button>
+            </header>
+            <section className="space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="border-b pb-3">
+                <h3 className="font-semibold mb-2">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-600 text-xs">Company</div>
+                    <div>{viewRef.company || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Status</div>
+                    <div className="uppercase">{viewRef.status}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Contact Name</div>
+                    <div>{viewRef.contact_name || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Contact Email</div>
+                    <div>{viewRef.contact_email || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Contact Phone</div>
+                    <div>{viewRef.contact_phone || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Locations</div>
+                    <div>{viewRef.locations?.join(", ") || "—"}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b pb-3">
+                <h3 className="font-semibold mb-2">Opportunity Types</h3>
+                <div className="text-sm">{viewRef.opportunity_types?.join(", ") || "—"}</div>
+              </div>
+
+              <div className="border-b pb-3">
+                <h3 className="font-semibold mb-2">Customer Environment</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-600 text-xs">Users</div>
+                    <div>{viewRef.environment?.users || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Phone Provider</div>
+                    <div>{viewRef.environment?.phone_provider || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Internet Provider</div>
+                    <div>{viewRef.environment?.internet_provider || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 text-xs">Internet Bandwidth (Mbps)</div>
+                    <div>{viewRef.environment?.internet_bandwidth_mbps || "—"}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-gray-600 text-xs">IT Support Model</div>
+                    <div>{viewRef.environment?.it_model || "—"}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b pb-3">
+                <h3 className="font-semibold mb-2">Reason for Referral</h3>
+                <div className="text-sm whitespace-pre-wrap">{viewRef.reason || "—"}</div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Notes</h3>
+                <div className="text-sm whitespace-pre-wrap">{viewRef.notes || "—"}</div>
+              </div>
+            </section>
+            <footer>
+              <button className="btn" onClick={() => setViewRef(null)}>
+                Close
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* --------- Delete confirmation modal --------- */}
+      {deleteRef && (
+        <div className="modal-backdrop" onClick={() => setDeleteRef(null)}>
+          <div className="modal max-w-md" onClick={(e) => e.stopPropagation()}>
+            <header>
+              <div>Delete Referral</div>
+              <button className="btn ghost" onClick={() => setDeleteRef(null)}>
+                Close
+              </button>
+            </header>
+            <section>
+              <p className="text-sm">
+                Are you sure you want to delete referral <span className="font-mono font-semibold">{deleteRef.ref_no}</span>?
+                This action cannot be undone.
+              </p>
+            </section>
+            <footer>
+              <button className="btn ghost" onClick={() => setDeleteRef(null)}>
+                Cancel
+              </button>
+              <button className="btn" disabled={busy} onClick={confirmDeleteReferral} style={{backgroundColor: '#ef4444', color: 'white'}}>
+                {busy ? "Deleting..." : "Delete"}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Confirm</h2>
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-gray-700 mb-6">{confirmDialog.message}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(null);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
+      {notification && (
+        <div className="fixed bottom-4 right-4 z-50 animate-fade-in">
+          <div className={`rounded-lg shadow-lg p-4 min-w-[300px] ${
+            notification.type === "success"
+              ? "bg-green-600 text-white"
+              : "bg-red-600 text-white"
+          }`}>
+            <div className="flex items-center justify-between gap-4">
+              <span>{notification.message}</span>
+              <button
+                onClick={() => setNotification(null)}
+                className="text-white hover:text-gray-200 font-bold text-xl"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </div>
       )}
