@@ -46,9 +46,13 @@ class AdminReferralUpdate(BaseModel):
 @router.patch("/{referral_id}")
 def admin_update_referral(referral_id: str, payload: AdminReferralUpdate, admin=Depends(require_admin), db: Session = Depends(get_db)):
     sets, params = [], {"id": referral_id}
-    def add(col, val, jsonb=False):
+    def add(col, val, jsonb=False, text_array=False):
         if val is not None:
-            if jsonb:
+            if text_array:
+                # Format as PostgreSQL array literal for text[] columns
+                sets.append(f"{col} = CAST(:{col} AS text[])")
+                params[col] = "{" + ",".join(f'"{s}"' for s in val) + "}"
+            elif jsonb:
                 sets.append(f"{col} = CAST(:{col} AS JSONB)")
                 params[col] = json.dumps(val)
             else:
@@ -61,8 +65,8 @@ def admin_update_referral(referral_id: str, payload: AdminReferralUpdate, admin=
     add("contact_email", payload.contact_email)
     add("contact_phone", payload.contact_phone)
     add("notes", payload.notes)
-    add("opportunity_types", payload.opportunity_types, jsonb=True)
-    add("locations", payload.locations, jsonb=True)
+    add("opportunity_types", payload.opportunity_types, text_array=True)
+    add("locations", payload.locations, text_array=True)
     add("environment", payload.environment, jsonb=True)
     add("reason", payload.reason)
     add("agent_id", payload.agent_id)
