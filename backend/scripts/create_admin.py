@@ -45,16 +45,15 @@ def create_admin():
         # Insert admin user
         conn.execute(
             text("""
-                INSERT INTO users (email, password_hash, full_name, role, is_active, mfa_enabled)
-                VALUES (:email, :password_hash, :full_name, :role, :is_active, :mfa_enabled)
+                INSERT INTO users (email, password_hash, name, role, is_active)
+                VALUES (:email, :password_hash, :name, :role, :is_active)
             """),
             {
                 "email": ADMIN_EMAIL,
                 "password_hash": password_hash,
-                "full_name": ADMIN_NAME,
+                "name": ADMIN_NAME,
                 "role": "admin",
-                "is_active": True,
-                "mfa_enabled": False
+                "is_active": True
             }
         )
         conn.commit()
