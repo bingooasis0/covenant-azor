@@ -1,61 +1,14 @@
-// frontend/src/app/resources/page.tsx
-"use client";
-
-import React from "react";
+'use client';
 
 export default function ResourcesPage() {
-  const downloads = [
-    {
-      id: "program-overview",
-      title: "Program Overview",
-      description: "Comprehensive guide to our referral program, commission structure, and partnership benefits.",
-      href: "/assets/program_overview.zip",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-      ),
-      color: "blue",
-    },
-    {
-      id: "sales-kit",
-      title: "Agent Sales Kit",
-      description: "Marketing materials, pitch decks, and collateral to help you close more deals.",
-      href: "/assets/agent_sales_kit.zip",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-        </svg>
-      ),
-      color: "indigo",
-    },
-  ];
-
-  const services = [
-    {
-      title: "Managed IT Services",
-      description: "Comprehensive IT support and infrastructure management for businesses of all sizes.",
-      features: ["24/7 Monitoring", "Helpdesk Support", "Network Management", "Cloud Services"],
-    },
-    {
-      title: "Hosted Voice Solutions",
-      description: "Enterprise-grade VoIP and unified communications for modern workplaces.",
-      features: ["Cloud PBX", "Video Conferencing", "Mobile Integration", "Call Analytics"],
-    },
-    {
-      title: "Cybersecurity",
-      description: "Advanced threat protection and compliance solutions to keep your business secure.",
-      features: ["Threat Detection", "Data Backup", "Security Training", "Compliance Support"],
-    },
-    {
-      title: "Internet & Connectivity",
-      description: "High-speed, reliable internet and network connectivity solutions.",
-      features: ["Fiber Connections", "SD-WAN", "Failover Protection", "Bandwidth Management"],
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <>
+      <style jsx global>{`
+        .content {
+          padding: 0 !important;
+        }
+      `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Downloads Section */}
         <section className="mb-16">
@@ -177,7 +130,269 @@ export default function ResourcesPage() {
             ))}
           </div>
         </section>
+
+        {/* NEW: Service Catalog Comparison Section */}
+        <section className="mb-16">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Service Catalog & Pricing</h2>
+            <p className="text-gray-600">
+              Detailed comparison of all service tiers, features, and pricing to help you understand our offerings.
+            </p>
+          </div>
+
+          {/* Legend */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 mb-8">
+            <div className="font-semibold text-gray-900 mb-3">Legend</div>
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-600 text-xl">●</span>
+                <span className="text-gray-700">= Included in tier</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-600 text-lg font-bold">+</span>
+                <span className="text-gray-700">= Available as optional add-on</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Empty cell</span>
+                <span className="text-gray-700">= Not available</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Managed IT Services Table */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8 overflow-x-auto">
+            <h3 className="text-2xl font-bold text-blue-600 mb-6">Managed IT Services (MSP)</h3>
+
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-blue-600 text-white">
+                  <th className="p-3 text-left font-semibold border border-white">Feature / Service</th>
+                  <th className="p-3 text-center font-semibold border border-white bg-green-100 text-green-800">
+                    Essential-Care<br/><span className="text-xs font-normal">$95/user/mo</span>
+                  </th>
+                  <th className="p-3 text-center font-semibold border border-white bg-blue-50 text-blue-800">
+                    Core-Care<br/><span className="text-xs font-normal">$125/user/mo</span>
+                  </th>
+                  <th className="p-3 text-center font-semibold border border-white bg-blue-50 text-yellow-800">
+                    Guardian-Care<br/><span className="text-xs font-normal">$165/user/mo</span>
+                  </th>
+                  <th className="p-3 text-center font-semibold border border-white bg-red-50 text-red-800">
+                    Total-Care+<br/><span className="text-xs font-normal">$225/user/mo</span>
+                  </th>
+                  <th className="p-3 text-center font-semibold border border-white bg-green-600">Add-Ons</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Core Support */}
+                <tr className="bg-gray-100">
+                  <td className="p-3 font-bold text-xs uppercase tracking-wide">Core Support & Response Times</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Unlimited Remote Helpdesk Support</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Onsite Support Included</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">2 visits/month</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">2 visits/month</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">4 visits/month</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Unlimited</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Critical Issue Response SLA</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">4 hours</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">2 hours</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">1 hour</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">30 minutes</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">24/7 Emergency Remote Support</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Billable</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+
+                {/* Security & Protection */}
+                <tr className="bg-gray-100">
+                  <td className="p-3 font-bold text-xs uppercase tracking-wide">Security & Protection</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Endpoint Protection</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Basic</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Basic</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Advanced</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Advanced</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Security Awareness Training</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Identity Threat Protection</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+
+                {/* Backup & Data Protection */}
+                <tr className="bg-gray-100">
+                  <td className="p-3 font-bold text-xs uppercase tracking-wide">Backup & Data Protection</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">BaaS - Endpoint Backup</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">M365 Tenant Backup</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+
+                {/* vCIO & Planning */}
+                <tr className="bg-gray-100">
+                  <td className="p-3 font-bold text-xs uppercase tracking-wide">Strategic Planning</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">vCIO Quarterly Reviews</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">Light</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200 text-xs">● + Budget</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="p-3 pl-6 border border-gray-200">Dedicated Account Manager</td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-blue-600 text-xl">●</span></td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+
+                {/* Onboarding Fee */}
+                <tr className="bg-gray-100">
+                  <td className="p-3 font-bold text-xs uppercase tracking-wide">One-Time Onboarding Fee</td>
+                </tr>
+                <tr className="hover:bg-gray-50 bg-yellow-50">
+                  <td className="p-3 pl-6 border border-gray-200 font-semibold">Initial Setup & Configuration</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs font-semibold">$900<br/>(4-6 hrs)</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs font-semibold">$1,400<br/>(6-10 hrs)</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs font-semibold">$2,000<br/>(10-14 hrs)</td>
+                  <td className="p-3 text-center border border-gray-200 text-xs font-semibold">$3,000<br/>(14-20 hrs)</td>
+                  <td className="p-3 text-center border border-gray-200"><span className="text-green-600 font-bold">+</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Additional Services - Simplified Cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h4 className="text-lg font-bold text-blue-600 mb-3">Firewall & Network</h4>
+              <div className="space-y-2 text-sm">
+                <div><strong>Incident-Based:</strong> $50/site</div>
+                <div><strong>Manage:</strong> $75/site</div>
+                <div><strong>Optimize:</strong> $125/site</div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h4 className="text-lg font-bold text-blue-600 mb-3">Hosted Voice</h4>
+              <div className="space-y-2 text-sm">
+                <div><strong>Incident-Based:</strong> $50/location</div>
+                <div><strong>Manage:</strong> $75/location</div>
+                <div><strong>Enhance:</strong> $100/location</div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h4 className="text-lg font-bold text-blue-600 mb-3">Surveillance</h4>
+              <div className="space-y-2 text-sm">
+                <div><strong>Incident-Based:</strong> TBD</div>
+                <div><strong>Manage:</strong> $6/camera</div>
+                <div><strong>Optimize:</strong> $8/camera</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Volume Pricing Note */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+            <h4 className="font-bold text-gray-900 mb-3">Volume Pricing & Additional Information</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li>• <strong>MSP Volume Discounts:</strong> 11-25 users (save $5-10/user) | 26-50 users (save $10-20/user) | 51-100 users (save $15-35/user)</li>
+              <li>• <strong>Post-Onboarding:</strong> Add New User = $175 | Add New Device = $95 | Offboard User = $87.50</li>
+              <li>• <strong>Break-Fix Rates:</strong> IT/MSP = $175/hr | Network = $175/hr | Voice = $95 flat | Surveillance = Region 1: $125/hr, Region 2: $165/hr</li>
+              <li>• <strong>Compliance Bundles Available:</strong> HIPAA (+$25/user/mo) | NIST CSF (+$40/user/mo) | Data Retention (+$15/user/mo)</li>
+            </ul>
+          </div>
+        </section>
       </div>
     </div>
+    </>
   );
 }
+
+// Sample data - replace with actual data
+const downloads = [
+  {
+    id: 1,
+    title: 'Service Catalog PDF',
+    description: 'Comprehensive overview of all our services and pricing',
+    href: '#',
+    color: 'blue',
+    icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+  },
+  {
+    id: 2,
+    title: 'Quick Reference Guide',
+    description: 'One-page summary for quick client discussions',
+    href: '#',
+    color: 'green',
+    icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+  }
+];
+
+const services = [
+  {
+    title: 'Managed IT Services (MSP)',
+    description: 'Comprehensive IT support and management for businesses of all sizes',
+    features: ['24/7 helpdesk support', 'Proactive monitoring', 'Security & compliance', 'Strategic planning']
+  },
+  {
+    title: 'Network & Infrastructure',
+    description: 'Enterprise-grade networking, firewall management, and infrastructure solutions',
+    features: ['Firewall management', 'Network optimization', 'VPN & remote access', 'WiFi solutions']
+  },
+  {
+    title: 'Cloud Solutions',
+    description: 'Microsoft 365, Azure, and cloud migration services',
+    features: ['M365 administration', 'Cloud backup', 'Email security', 'Collaboration tools']
+  },
+  {
+    title: 'Voice & Communications',
+    description: 'Hosted VoIP and unified communications',
+    features: ['Hosted PBX', 'Call routing', 'Conference bridging', 'Mobile integration']
+  }
+];
