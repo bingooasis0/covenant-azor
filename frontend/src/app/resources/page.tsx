@@ -9,7 +9,7 @@ export default function ResourcesPage() {
         }
       `}</style>
       <div className="resources-page-wrapper min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto p-8">
         {/* Downloads Section */}
         <section className="mb-16">
           <div className="mb-8">
@@ -312,9 +312,9 @@ export default function ResourcesPage() {
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <h4 className="text-lg font-bold text-blue-600 mb-3">Firewall & Network</h4>
               <div className="space-y-2 text-sm">
-                <div><strong>Incident-Based:</strong> $50/site</div>
-                <div><strong>Manage:</strong> $75/site</div>
-                <div><strong>Optimize:</strong> $125/site</div>
+                <div><strong>Incident-Based:</strong> $75/site</div>
+                <div><strong>Manage:</strong> $100/site</div>
+                <div><strong>Optimize:</strong> $150/site</div>
               </div>
             </div>
 
