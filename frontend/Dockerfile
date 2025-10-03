@@ -11,6 +11,7 @@ COPY frontend ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_API_BASE=https://partner.covenanttechnology.net/api
 ENV NEXT_PUBLIC_HEADER_AUTH=disabled
+ENV NEXT_PUBLIC_APP_VERSION=1.0.0
 RUN npm run build || echo "Build step skipped if not configured"
 
 FROM node:20-alpine AS runner
