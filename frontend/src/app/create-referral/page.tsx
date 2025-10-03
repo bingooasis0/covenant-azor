@@ -209,7 +209,7 @@ export default function CreateReferralPage(){
           users: fd.get("env_users") ? Number(fd.get("env_users")) : undefined,
           phone_provider: String(fd.get("env_phone_provider") || "") || undefined,
           internet_provider: String(fd.get("env_isp") || "") || undefined,
-          internet_bandwidth_mbps: fd.get("env_bandwidth") ? Number(fd.get("env_bandwidth")) : undefined,
+          internet_bandwidth_mbps: String(fd.get("env_bandwidth") || "") || undefined,
           it_model: String(fd.get("env_it_model") || "") || undefined,
         },
         reason: String(fd.get("reason") || "") || undefined,
@@ -246,13 +246,29 @@ export default function CreateReferralPage(){
       {err && <div className="text-sm bg-red-50 border border-red-200 text-red-800 p-3 rounded-md">{err}</div>}
 
       <form ref={formRef} onSubmit={onSubmit} className="space-y-6" noValidate>
-        <div className="card"><h2 className="text-base font-semibold mb-2">Basic Information</h2>
+        <div className="card"><h2 className="text-base font-semibold mb-3">Basic Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium mb-1">Customer Company Name</label><input name="company" className="input w-full" placeholder="Company, LLC" required/></div>
-            <div><label className="block text-sm font-medium mb-1">Customer Location(s)</label><input name="locationsCsv" className="input w-full" placeholder="Comma-separated list"/></div>
-            <div><label className="block text-sm font-medium mb-1">Primary Contact Name</label><input name="contact_name" className="input w-full" required/></div>
-            <div><label className="block text-sm font-medium mb-1">Primary Contact Email</label><input name="contact_email" type="email" className="input w-full" required/></div>
-            <div><label className="block text-sm font-medium mb-1">Primary Contact Phone</label><input name="contact_phone" className="input w-full" required/></div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1.5">Customer Company Name <span className="text-red-500">*</span></label>
+              <input name="company" className="input w-full" placeholder="e.g., Acme Corporation" required/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Primary Contact Name <span className="text-red-500">*</span></label>
+              <input name="contact_name" className="input w-full" placeholder="e.g., John Smith" required/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Primary Contact Email <span className="text-red-500">*</span></label>
+              <input name="contact_email" type="email" className="input w-full" placeholder="e.g., john@company.com" required/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Primary Contact Phone <span className="text-red-500">*</span></label>
+              <input name="contact_phone" className="input w-full" placeholder="e.g., (555) 123-4567" required/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Customer Location(s)</label>
+              <input name="locationsCsv" className="input w-full" placeholder="e.g., New York, Boston"/>
+              <p className="text-xs text-gray-500 mt-1">Comma-separated if multiple</p>
+            </div>
           </div>
         </div>
 
@@ -266,31 +282,63 @@ export default function CreateReferralPage(){
           </div>
         </div>
 
-        <div className="card"><h2 className="text-base font-semibold mb-2">Customer Environment</h2>
+        <div className="card"><h2 className="text-base font-semibold mb-3">Customer Environment</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium mb-1"># of Users / Employees</label><input name="env_users" type="number" inputMode="numeric" className="input w-full" placeholder="e.g., 25"/></div>
-            <div><label className="block text sm font-medium mb-1">Current Phone System Provider</label><input name="env_phone_provider" className="input w-full"/></div>
-            <div><label className="block text sm font-medium mb-1">Current Internet Provider</label><input name="env_isp" className="input w-full"/></div>
-            <div><label className="block text sm font-medium mb-1">Internet Bandwidth (Mbps)</label><input name="env_bandwidth" type="number" inputMode="decimal" className="input w-full" placeholder="e.g., 300"/></div>
-            <div className="md:col-span-2"><label className="block text sm font-medium mb-1">Current IT Support Model</label><input name="env_it_model" className="input w-full" placeholder="internal, external, none"/></div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5"># of Users / Employees</label>
+              <input name="env_users" type="number" inputMode="numeric" className="input w-full" placeholder="e.g., 25"/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Internet Bandwidth / Speed</label>
+              <input name="env_bandwidth" type="text" className="input w-full" placeholder="e.g., 100x100, 500/50, 1Gbps"/>
+              <p className="text-xs text-gray-500 mt-1">Enter as shown by ISP (e.g., 100x100, 500/50)</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Current Phone Provider</label>
+              <input name="env_phone_provider" className="input w-full" placeholder="e.g., RingCentral, Vonage, 8x8"/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Current Internet Provider</label>
+              <input name="env_isp" className="input w-full" placeholder="e.g., Comcast, Verizon, Spectrum"/>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1.5">Current IT Support Model</label>
+              <input name="env_it_model" className="input w-full" placeholder="e.g., In-house IT, External MSP, No formal support"/>
+            </div>
           </div>
         </div>
 
-        <div className="card"><h2 className="text-base font-semibold mb-2">Reason for Referral (trigger statement)</h2>
-          <div><input name="reason" className="input w-full" placeholder="e.g., They mentioned slow Wi-Fi"/></div>
-        </div>
-
-        <div className="card"><h2 className="text-base font-semibold mb-2">Referral Source (Azor Rep)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text sm font-medium mb-1">Rep Name</label><input name="rep_name" className="input w-full"/></div>
-            <div><label className="block text sm font-medium mb-1">Rep Email</label><input name="rep_email" type="email" className="input w-full"/></div>
-            <div><label className="block text sm font-medium mb-1">Date of Referral</label><input name="referral_date" type="date" defaultValue={new Date().toISOString().slice(0,10)} className="input w-full"/></div>
+        <div className="card"><h2 className="text-base font-semibold mb-3">Reason for Referral</h2>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">What triggered this referral?</label>
+            <input name="reason" className="input w-full" placeholder="e.g., They mentioned needing faster internet, experiencing frequent downtime"/>
+            <p className="text-xs text-gray-500 mt-1">Describe what the customer mentioned or what problem they're experiencing</p>
           </div>
         </div>
 
-        <div className="card"><h2 className="text-base font-semibold mb-2">Additional Notes & Attachments</h2>
+        <div className="card"><h2 className="text-base font-semibold mb-3">Referral Source</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Azor Rep Name</label>
+              <input name="rep_name" className="input w-full" placeholder="e.g., Jane Doe"/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Azor Rep Email</label>
+              <input name="rep_email" type="email" className="input w-full" placeholder="e.g., jane@azor.com"/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Date of Referral</label>
+              <input name="referral_date" type="date" defaultValue={new Date().toISOString().slice(0,10)} className="input w-full"/>
+            </div>
+          </div>
+        </div>
+
+        <div className="card"><h2 className="text-base font-semibold mb-3">Additional Notes & Attachments</h2>
           <div className="grid grid-cols-1 gap-4">
-            <div><label className="block text sm font-medium mb-1">Notes</label><textarea name="notes" className="input w-full min-h-[120px]"/></div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Additional Notes</label>
+              <textarea name="notes" className="input w-full min-h-[120px]" placeholder="Any additional details about the customer, opportunity, or special considerations..."/>
+            </div>
             <div>
               <label className="block text-sm font-medium mb-2">Attachments</label>
               <div className="flex items-center gap-2">
