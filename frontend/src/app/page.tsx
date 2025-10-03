@@ -132,7 +132,6 @@ export default function LoginPage() {
       <div className="w-[520px] max-w-[95vw]">
         <div className="card" style={{ borderRadius: 16 }}>
           <h1 className="text-2xl font-bold mb-2 text-center">Welcome back</h1>
-          <p className="text-sm text-[var(--muted)] mb-4 text-center">Partner portal</p>
 
           <form onSubmit={onSubmit} className="space-y-3">
             <div>
