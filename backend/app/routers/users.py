@@ -117,12 +117,15 @@ def mfa_verify(payload: dict, user=Depends(require_session), db: Session = Depen
         {"u": user["id"]},
     ).mappings().first()
     if not row:
+        print(f"[MFA] No credential found for user {user['id']}")
         raise HTTPException(status_code=400, detail={"code": "mfa_not_enrolled"})
 
     # verify via authenticator code
     if code:
         totp = pyotp.TOTP(row["secret"])
-        if not totp.verify(str(code), valid_window=1):
+        is_valid = totp.verify(str(code), valid_window=1)
+        print(f"[MFA] Code verification for user {user['id']}: {is_valid}")
+        if not is_valid:
             raise HTTPException(status_code=400, detail={"code": "invalid_mfa_code"})
         db.execute(text("UPDATE mfa_credential SET enabled=TRUE WHERE user_id=:u"),
                    {"u": user["id"]})
