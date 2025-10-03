@@ -790,9 +790,14 @@ export default function AdminPage() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <header>
               <div>Edit {editRef.ref_no}</div>
-              <button className="btn ghost" onClick={() => setEditRef(null)}>
-                Close
-              </button>
+              <div className="flex gap-2">
+                <button className="btn" disabled={busy} onClick={saveRef}>
+                  {busy ? "Saving..." : "Save changes"}
+                </button>
+                <button className="btn ghost" onClick={() => setEditRef(null)}>
+                  Close
+                </button>
+              </div>
             </header>
             <section className="space-y-3">
               {modalError && (
