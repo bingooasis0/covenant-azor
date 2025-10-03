@@ -101,6 +101,7 @@ def create_referral(
 
         try:
             # Try to insert with this ref_no
+            from sqlalchemy.dialects.postgresql import ARRAY
             row = db.execute(
                 text(
                     """
@@ -109,7 +110,7 @@ def create_referral(
                         agent_id, opportunity_types, locations, environment, reason
                     ) VALUES (
                         :ref_no, :company, 'new', :contact_name, :contact_email, :contact_phone, :notes,
-                        :agent_id, :opportunity_types::text[], :locations::text[], CAST(:environment AS JSONB), :reason
+                        :agent_id, CAST(:opportunity_types AS text[]), CAST(:locations AS text[]), CAST(:environment AS JSONB), :reason
                     )
                     RETURNING id, ref_no, company, status, created_at, contact_name, contact_email,
                               contact_phone, notes, agent_id, opportunity_types, locations, environment, reason
@@ -123,8 +124,8 @@ def create_referral(
                     "contact_phone": payload.contact_phone,
                     "notes": payload.notes,
                     "agent_id": user_id,
-                    "opportunity_types": payload.opportunity_types or [],
-                    "locations": payload.locations or [],
+                    "opportunity_types": "{" + ",".join(f'"{s}"' for s in (payload.opportunity_types or [])) + "}",
+                    "locations": "{" + ",".join(f'"{s}"' for s in (payload.locations or [])) + "}",
                     "environment": json.dumps(payload.environment or {}),
                     "reason": payload.reason,
                 },
